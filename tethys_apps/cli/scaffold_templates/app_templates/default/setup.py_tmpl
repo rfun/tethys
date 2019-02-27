@@ -9,6 +9,7 @@ release_package = 'tethysapp-' + app_package
 app_class = '{{project}}.app:{{class_name}}'
 app_package_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tethysapp', app_package)
 
+# -- Please list all dependencies in the init.yml file -- #
 # -- Python Dependencies -- #
 dependencies = []
 

@@ -44,21 +44,24 @@ def init_command(args):
         # Add all channels listed in the file.
         if "channels" in condaConfig:
             channels = condaConfig['channels']
-            for channel in channels:
-                [resp, err, code] = conda_run(
-                    Commands.CONFIG, "--env --add channels {}".format(channel), use_exception_handler=True)
+            if channels and len(channels) > 0:
+                for channel in channels:
+                    [resp, err, code] = conda_run(
+                        Commands.CONFIG, "--env --add channels {}".format(channel), use_exception_handler=True)
 
         # Install all Dependencies
 
         if "dependencies" in condaConfig:
             dependencies = condaConfig['dependencies']
             depList = " ".join(dependencies)
-            print(depList)
             with pretty_output(FG_BLUE) as p:
                 p.write('Installing Dependencies.....')
             [resp, err, code] = conda_run(
-                Commands.INSTALL, depList, use_exception_handler=True)
-            print(code)
+                Commands.INSTALL, depList, use_exception_handler=False, stdout=None, stderr=None)
+            if code not 0:
+                with pretty_output(FG_RED) as p:
+                    p.write(
+                        'Warning: Dependencies installation ran into an error. Please try again or a manual install')
 
         exit(0)
 
