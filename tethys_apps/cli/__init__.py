@@ -438,6 +438,8 @@ def tethys_command():
     group = application_init_parser.add_mutually_exclusive_group()
     group.add_argument('-f', '--file', type=str,
                        help='The path to the Init Config file. ')
+    group.add_argument('-pf', '--portal', type=str,
+                       help='The path to the Portal initialization config file')
     application_init_parser.set_defaults(func=init_command)
 
     # Parse the args and call the default function
