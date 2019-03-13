@@ -58,8 +58,6 @@ def create_and_link(serviceKey, config, appName=""):
     service = services.get(serviceKey)
     newService = None
 
-    print(config)
-
     if appName:
         config['name'] = "{0}-{1}".format(appName, config['name'])
 
@@ -90,7 +88,42 @@ def create_and_link(serviceKey, config, appName=""):
         serviceKey, config['name'], appName, service['linkParam'], config['setting-name'])
 
 
-def runInteractiveServices():
+def getServiceFromID(id):
+
+    from tethys_services.models import SpatialDatasetService, PersistentStoreService, DatasetService, WebProcessingService
+
+    try:
+        persistent_entries = PersistentStoreService.objects.get(id=id)
+        return {"service_type": "persistent",
+                "linkParam": services['persistent']['linkParam']}
+    except ObjectDoesNotExist:
+        pass
+
+    try:
+        entries = SpatialDatasetService.objects.get(id=id)
+        return {"service_type": "spatial",
+                "linkParam": services['spatial']['linkParam']}
+    except ObjectDoesNotExist:
+        pass
+
+    try:
+        entries = DatasetService.objects.get(id=id)
+        return {"service_type": "dataset",
+                "linkParam": services['dataset']['linkParam']}
+    except ObjectDoesNotExist:
+        pass
+
+    try:
+        entries = WebProcessingService.objects.get(id=id)
+        return {"service_type": "wps",
+                "linkParam": services['persistent']['linkParam']}
+    except ObjectDoesNotExist:
+        pass
+
+    return False
+
+
+def runInteractiveServices(appName):
     write_msg('Running Interactive Service Mode. Any configuration options in init.yml for services will be ignored...')
 
     # List existing services
@@ -101,24 +134,50 @@ def runInteractiveServices():
 
     services_list_command(tempNS)
 
-    try:
-        write_msg(
-            'Please enter the service ID to link one of the above listed service.')
-        write_msg(
-            'You may also enter a comma seperated list of service ids : (1,2).')
-        write_msg(
-            'Just hit return if you wish to skip this step and move on to creating your own services.')
-        response = input("")
-        if response != "":
-                # Parse Response
-            print("re")
-        else:
-            write_msg("Create new service....")
+    write_msg(
+        'Please enter the service ID to link one of the above listed service.')
+    write_msg(
+        'You may also enter a comma seperated list of service ids : (1,2).')
+    write_msg(
+        'Just hit return if you wish to skip this step and move on to creating your own services.')
 
-    except (KeyboardInterrupt, SystemExit):
-        with pretty_output(FG_YELLOW) as p:
-            p.write('\nInit Command cancelled.')
-        exit(1)
+    valid = False
+
+    while not valid:
+        try:
+            response = input("")
+            if response != "":
+                # Parse Response
+                try:
+                    ids = int(response.replace(',', ''))
+                    if not isinstance(ids, list):
+                        ids = [ids]
+                    for service_id in ids:
+                        service = getServiceFromID(service_id)
+                        if service:
+                            # Ask for app setting name:
+                            write_msg(
+                                'Please enter the name of the service from your app.py eg: "catalog_db")')
+                            setting_name = input("")
+                            link_service_to_app_setting(service['service_type'],
+                                                        service_id,
+                                                        appName,
+                                                        service['linkParam'],
+                                                        setting_name)
+
+                    valid = True
+                except ValueError:
+                    with pretty_output(FG_RED) as p:
+                        p.write("Invalid Input...Please try again.")
+            else:
+                write_msg(
+                    "Please run 'tethys services create -h' to create services via the command line.")
+                valid = True
+
+        except (KeyboardInterrupt, SystemExit):
+            with pretty_output(FG_YELLOW) as p:
+                p.write('\nInit Command cancelled.')
+            exit(1)
 
 
 def init_command(args):
@@ -157,28 +216,28 @@ def init_command(args):
                     'No Conda options found. Does your app not have any dependencies? ')
             exit(0)
 
-        # condaConfig = initOptions['conda']
-        # # Add all channels listed in the file.
-        # if "channels" in condaConfig:
-        #     channels = condaConfig['channels']
-        #     if channels and len(channels) > 0:
-        #         for channel in channels:
-        #             [resp, err, code] = conda_run(
-        #                 Commands.CONFIG, "--env --add channels {}".format(channel), use_exception_handler=True)
+        condaConfig = initOptions['conda']
+        # Add all channels listed in the file.
+        if "channels" in condaConfig:
+            channels = condaConfig['channels']
+            if channels and len(channels) > 0:
+                for channel in channels:
+                    [resp, err, code] = conda_run(
+                        Commands.CONFIG, "--env --add channels {}".format(channel), use_exception_handler=True)
 
         # # Install all Dependencies
 
-        # if "dependencies" in condaConfig:
-        #     dependencies = condaConfig['dependencies']
-        #     depList = " ".join(dependencies)
-        #     with pretty_output(FG_BLUE) as p:
-        #         p.write('Installing Dependencies.....')
-        #     [resp, err, code] = conda_run(
-        #         Commands.INSTALL, depList, use_exception_handler=False, stdout=None, stderr=None)
-        #     if code != 0:
-        #         with pretty_output(FG_RED) as p:
-        #             p.write(
-        #                 'Warning: Dependencies installation ran into an error. Please try again or a manual install')
+        if "dependencies" in condaConfig:
+            dependencies = condaConfig['dependencies']
+            depList = " ".join(dependencies)
+            with pretty_output(FG_BLUE) as p:
+                p.write('Installing Dependencies.....')
+            [resp, err, code] = conda_run(
+                Commands.INSTALL, depList, use_exception_handler=False, stdout=None, stderr=None)
+            if code != 0:
+                with pretty_output(FG_RED) as p:
+                    p.write(
+                        'Warning: Dependencies installation ran into an error. Please try again or a manual install')
 
         # Setup any services that need to be setup
 
@@ -188,13 +247,15 @@ def init_command(args):
                 services = tethysConfig['services']
                 if "interactive" in services:
                     if services["interactive"]:
-                        runInteractiveServices()
+                        runInteractiveServices(appName)
                 else:
                     if services and len(services) > 0:
                         for service in services:
                             if services[service] is not None:
                                 create_and_link(
                                     service, services[service], appName)
+
+        write_msg("Services Configuration Completed.")
 
         exit(0)
 
