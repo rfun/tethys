@@ -21,7 +21,9 @@ from tethys_apps.cli.manage_commands import (manage_command, MANAGE_START, MANAG
                                              MANAGE_COLLECT, MANAGE_CREATESUPERUSER)
 from tethys_apps.cli.services_commands import (services_create_persistent_command, services_create_spatial_command,
                                                services_list_command, services_remove_persistent_command,
-                                               services_remove_spatial_command)
+                                               services_remove_spatial_command, services_create_dataset_command,
+                                               services_remove_dataset_command, services_create_wps_command,
+                                               services_remove_wps_command)
 from tethys_apps.cli.link_commands import link_command
 from tethys_apps.cli.app_settings_commands import (app_settings_list_command, app_settings_create_ps_database_command,
                                                    app_settings_remove_command)
@@ -180,8 +182,8 @@ def tethys_command():
     # tethys services remove persistent
     services_remove_persistent = services_remove_subparsers.add_parser('persistent',
                                                                        help='Remove a Persistent Store Service.')
-    services_remove_persistent.add_argument('service_uid', help='The ID or name of the Persistent Store Service '
-                                                                'that you are removing.')
+    services_remove_persistent.add_argument(
+        'service_uid', help='The ID or name of the Persistent Store Service that you are removing.')
     services_remove_persistent.add_argument('-f', '--force', action='store_true',
                                             help='Force removal without confirming.')
     services_remove_persistent.set_defaults(
@@ -190,11 +192,31 @@ def tethys_command():
     # tethys services remove spatial
     services_remove_spatial = services_remove_subparsers.add_parser('spatial',
                                                                     help='Remove a Spatial Dataset Service.')
-    services_remove_spatial.add_argument('service_uid', help='The ID or name of the Spatial Dataset Service '
-                                                             'that you are removing.')
+    services_remove_spatial.add_argument(
+        'service_uid', help='The ID or name of the Spatial Dataset Service that you are removing.')
     services_remove_spatial.add_argument(
         '-f', '--force', action='store_true', help='Force removal without confirming.')
     services_remove_spatial.set_defaults(func=services_remove_spatial_command)
+
+    # tethys services remove Dataset
+    services_remove_dataset = services_remove_subparsers.add_parser('dataset',
+                                                                    help='Remove a Dataset Service.')
+    services_remove_dataset.add_argument(
+        'service_uid', help='The ID or name of the Dataset Service that you are removing.')
+    services_remove_dataset.add_argument('-f', '--force', action='store_true',
+                                         help='Force removal without confirming.')
+    services_remove_dataset.set_defaults(
+        func=services_remove_dataset_command)
+
+ # tethys services remove Dataset
+    services_remove_wps = services_remove_subparsers.add_parser('wps',
+                                                                help='Remove a wps Service.')
+    services_remove_wps.add_argument(
+        'service_uid', help='The ID or name of the wps Service that you are removing.')
+    services_remove_wps.add_argument('-f', '--force', action='store_true',
+                                     help='Force removal without confirming.')
+    services_remove_wps.set_defaults(
+        func=services_remove_wps_command)
 
     # tethys services create
     services_create_parser = services_subparsers.add_parser(
@@ -209,7 +231,7 @@ def tethys_command():
         '-n', '--name', required=True, help='A unique name for the Service', type=str)
     services_create_ps.add_argument('-c', '--connection', required=True, type=str,
                                     help='The connection of the Service in the form '
-                                         '"<username>:<password>@<host>:<port>"')
+                                    '"<username>:<password>@<host>:<port>"')
     services_create_ps.set_defaults(func=services_create_persistent_command)
 
     # tethys services create spatial
@@ -219,13 +241,41 @@ def tethys_command():
         '-n', '--name', required=True, help='A unique name for the Service', type=str)
     services_create_sd.add_argument('-c', '--connection', required=True, type=str,
                                     help='The connection of the Service in the form '
-                                         '"<username>:<password>@<protocol>//<host>:<port>"')
-    services_create_sd.add_argument('-p', '--public-endpoint', required=False, type=str,
+                                    '"<username>:<password>@<protocol>//<host>:<port>"')
+    services_create_sd.add_argument('-p', '--public-endpoint', type=str,
                                     help='The public-facing endpoint, if different than what was provided with the '
-                                         '--connection argument, of the form "<host>:<port>"')
-    services_create_sd.add_argument('-k', '--apikey', required=False, type=str,
+                                    '--connection argument, of the form "<host>:<port>"')
+    services_create_sd.add_argument('-k', '--apikey', type=str,
                                     help='The API key, if any, required to establish a connection.')
     services_create_sd.set_defaults(func=services_create_spatial_command)
+
+    # tethys services create spatial
+    services_create_dataset = services_create_subparsers.add_parser('dataset',
+                                                                    help='Create a CKAN/HydroShare Dataset Service.')
+    services_create_dataset.add_argument(
+        '-n', '--name', required=True, help='A unique name for the Service', type=str)
+    services_create_dataset.add_argument('-t', '--type', required=True, type=str, choices=['CKAN', 'HydroShare'],
+                                         help='Type of dataset service being created (CKAN/HydroShare)'
+                                         '"<username>:<password>@<protocol>//<host>:<port>"')
+    services_create_dataset.add_argument('-c', '--connection', required=True, type=str,
+                                         help='The connection of the Service in the form '
+                                         '"<username>:<password>@<protocol>//<host>:<port>"')
+    services_create_dataset.add_argument('-p', '--public-endpoint', required=False, type=str,
+                                         help='The public-facing endpoint, if different than what was provided with the '
+                                         '--connection argument, of the form "<host>:<port>"')
+    services_create_dataset.add_argument('-k', '--apikey', required=False, type=str,
+                                         help='The API key, if any, required to establish a connection.')
+    services_create_dataset.set_defaults(func=services_create_dataset_command)
+
+    # tethys services create spatial
+    services_create_wps = services_create_subparsers.add_parser('wps',
+                                                                help='Create a Web Processing Service.')
+    services_create_wps.add_argument(
+        '-n', '--name', required=True, help='A unique name for the Service', type=str)
+    services_create_wps.add_argument('-c', '--connection', required=True, type=str,
+                                     help='The connection of the Service in the form '
+                                     '"<username>:<password>@<protocol>//<host>:<port>"')
+    services_create_wps.set_defaults(func=services_create_wps_command)
 
     # tethys services list
     services_list_parser = services_subparsers.add_parser(
@@ -235,6 +285,10 @@ def tethys_command():
                        help='Only list Persistent Store Services.')
     group.add_argument('-s', '--spatial', action='store_true',
                        help='Only list Spatial Dataset Services.')
+    group.add_argument('-d', '--dataset', action='store_true',
+                       help='Only list Dataset Services.')
+    group.add_argument('-w', '--wps', action='store_true',
+                       help='Only list Web Processing Services.')
     services_list_parser.set_defaults(func=services_list_command)
 
     # APP_SETTINGS COMMANDS
@@ -276,7 +330,7 @@ def tethys_command():
                                               help='Include this flag if the database requires spatial capabilities.')
     app_settings_create_psdb_cmd.add_argument('-y', '--dynamic', action='store_true', required=False,
                                               help='Include this flag if the database should be considered to be '
-                                                   'dynamically created.')
+                                              'dynamically created.')
     app_settings_create_psdb_cmd.set_defaults(
         func=app_settings_create_ps_database_command)
 
@@ -297,12 +351,12 @@ def tethys_command():
 
     # tethys link
     link_parser.add_argument('service', help='Service to link to a target app. Of the form '
-                                             '"<spatial|persistent>:<service_id|service_name>" '
-                                             '(i.e. "persistent_connection:super_conn")')
+                             '"<spatial|persistent>:<service_id|service_name>" '
+                             '(i.e. "persistent_connection:super_conn")')
     link_parser.add_argument('setting', help='Setting of an app with which to link the specified service.'
-                                             'Of the form "<app_package>:'
-                                             '<setting_type (ps_database|ps_connection|ds_spatial)>:'
-                                             '<setting_id|setting_name>" (i.e. "epanet:database:epanet_2")')
+                             'Of the form "<app_package>:'
+                             '<setting_type (ps_database|ps_connection|ds_spatial)>:'
+                             '<setting_id|setting_name>" (i.e. "epanet:database:epanet_2")')
     link_parser.set_defaults(func=link_command)
 
     # Setup test command
@@ -315,7 +369,7 @@ def tethys_command():
     test_parser.add_argument(
         '-u', '--unit', help='Run only unit tests.', action='store_true')
     test_parser.add_argument('-g', '--gui', help='Run only gui tests. Mutually exclusive with -u. '
-                                                 'If both flags are set then -u takes precedence.',
+                             'If both flags are set then -u takes precedence.',
                              action='store_true')
     test_parser.add_argument('-f', '--file', type=str,
                              help='File to run tests in. Overrides -g and -u.')
@@ -339,22 +393,22 @@ def tethys_command():
     syncstores_parser = subparsers.add_parser(
         'syncstores', help='Management command for App Persistent Stores.')
     syncstores_parser.add_argument('app', help='Name of the target on which to perform persistent store sync OR "all" '
-                                               'to sync all of them.',
+                                   'to sync all of them.',
                                    nargs='+')
     syncstores_parser.add_argument('-r', '--refresh',
                                    help='When called with this option, the tables will be dropped prior to syncing'
-                                        ' resulting in a refreshed database.',
+                                   ' resulting in a refreshed database.',
                                    action='store_true',
                                    dest='refresh')
     syncstores_parser.add_argument('-f', '--firsttime',
                                    help='Call with this option to force the initializer functions to be executed with '
-                                        '"first_time" parameter True.',
+                                   '"first_time" parameter True.',
                                    action='store_true',
                                    dest='firsttime')
     syncstores_parser.add_argument(
         '-d', '--database', help='Name of database to sync.')
     syncstores_parser.add_argument('-m', '--manage', help='Absolute path to manage.py for '
-                                                          'Tethys Platform installation.')
+                                   'Tethys Platform installation.')
     syncstores_parser.set_defaults(func=syc, refresh=False, firstime=False)
 
     # Setup the docker commands
@@ -382,7 +436,7 @@ def tethys_command():
     application_init_parser = subparsers.add_parser(
         'init', help='Install and Initialize Applications')
     group = application_init_parser.add_mutually_exclusive_group()
-    group.add_argument('-f', '--file', required=False, type=str,
+    group.add_argument('-f', '--file', type=str,
                        help='The path to the Init Config file. ')
     application_init_parser.set_defaults(func=init_command)
 

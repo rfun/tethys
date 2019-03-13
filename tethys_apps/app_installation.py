@@ -41,7 +41,8 @@ def _run_install(self):
 
     # Notify user
     with pretty_output(FG_BLACK) as p:
-        p.write('Copying App Package: {0} to {1}'.format(self.app_package_dir, destination_dir))
+        p.write('Copying App Package: {0} to {1}'.format(
+            self.app_package_dir, destination_dir))
 
     # Copy files
     try:
@@ -73,7 +74,8 @@ def _run_develop(self):
 
     # Notify user
     with pretty_output(FG_BLACK) as p:
-        p.write('Creating Symbolic Link to App Package: {0} to {1}'.format(self.app_package_dir, destination_dir))
+        p.write('Creating Symbolic Link to App Package: {0} to {1}'.format(
+            self.app_package_dir, destination_dir))
 
     # Create symbolic link
     try:
@@ -83,7 +85,8 @@ def _run_develop(self):
         else:
             def symlink_ms(source, dest):
                 csl = ctypes.windll.kernel32.CreateSymbolicLinkW
-                csl.argtypes = (ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32)
+                csl.argtypes = (ctypes.c_wchar_p,
+                                ctypes.c_wchar_p, ctypes.c_uint32)
                 csl.restype = ctypes.c_ubyte
                 flags = 1 if os.path.isdir(source) else 0
                 if csl(dest, source.replace('/', '\\'), flags) == 0:
@@ -93,7 +96,7 @@ def _run_develop(self):
             symlink_ms(self.app_package_dir, destination_dir)
     except Exception as e:
         with pretty_output(FG_BLACK) as p:
-            p.write(e)
+            p.write(str(e))
         try:
             shutil.rmtree(destination_dir)
         except Exception:
