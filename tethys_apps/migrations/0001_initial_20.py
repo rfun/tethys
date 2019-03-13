@@ -17,12 +17,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='TethysApp',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.AutoField(auto_created=True,
+                                        primary_key=True, serialize=False, verbose_name='ID')),
                 ('package', models.CharField(default='', max_length=200, unique=True)),
                 ('name', models.CharField(default='', max_length=200)),
-                ('description', models.TextField(blank=True, default='', max_length=1000)),
+                ('description', models.TextField(
+                    blank=True, default='', max_length=1000)),
                 ('enable_feedback', models.BooleanField(default=False)),
-                ('feedback_emails', tethys_compute.utilities.ListField(blank=True, default='')),
+                ('feedback_emails', tethys_compute.utilities.ListField(
+                    blank=True, default='')),
                 ('index', models.CharField(default='', max_length=200)),
                 ('icon', models.CharField(default='', max_length=200)),
                 ('root_url', models.CharField(default='', max_length=200)),
@@ -40,9 +43,11 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='TethysAppSetting',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.AutoField(auto_created=True,
+                                        primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(default='', max_length=200)),
-                ('description', models.TextField(blank=True, default='', max_length=1000)),
+                ('description', models.TextField(
+                    blank=True, default='', max_length=1000)),
                 ('required', models.BooleanField(default=True)),
                 ('initializer', models.CharField(default='', max_length=1000)),
                 ('initialized', models.BooleanField(default=False)),
@@ -56,6 +61,7 @@ class Migration(migrations.Migration):
                                                               parent_link=True, primary_key=True, serialize=False,
                                                               to='tethys_apps.TethysAppSetting')),
                 ('value', models.CharField(blank=True, max_length=1024)),
+                ('default', models.CharField(blank=True, default='', max_length=1024)),
                 ('type', models.CharField(choices=[('STRING', 'String'), ('INTEGER', 'Integer'), ('FLOAT', 'Float'),
                                                    ('BOOLEAN', 'Boolean')], default='STRING', max_length=200)),
             ],
