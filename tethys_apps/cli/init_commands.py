@@ -16,6 +16,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from argparse import Namespace
 from conda.cli.python_api import run_command as conda_run, Commands
 import yaml
+from subprocess import (call, Popen, PIPE)
 # @TODO : Probably have better error messages/prompts
 
 services = {
@@ -242,17 +243,15 @@ def run_portal_init(filePath, appName):
                 'An unexpected error occurred reading the file. Please try again.')
             return
 
-    if "apps" in portal_options:
-        if appName in portal_options['apps']:
-            if 'services' in portal_options['apps'][appName]:
-                services = portal_options['apps'][appName]['services']
-                if services and len(services) > 0:
-                    for serviceType in services:
-                        if services[serviceType] is not None:
-                            current_services = services[serviceType]
-                            for service_setting_name in current_services:
-                                find_and_link(serviceType, service_setting_name,
-                                              current_services[service_setting_name], appName)
+    if "apps" in portal_options and appName in portal_options['apps'] and 'services' in portal_options['apps'][appName]:
+        services = portal_options['apps'][appName]['services']
+        if services and len(services) > 0:
+            for serviceType in services:
+                if services[serviceType] is not None:
+                    current_services = services[serviceType]
+                    for service_setting_name in current_services:
+                        find_and_link(serviceType, service_setting_name,
+                                      current_services[service_setting_name], appName)
         else:
             write_msg(
                 "No app configuration found for app: {} in portal config file. ".format(appName))
@@ -264,16 +263,15 @@ def run_portal_init(filePath, appName):
 
 def install_dependencies(condaConfig):
      # Add all channels listed in the file.
-    if "channels" in condaConfig:
+    if "channels" in condaConfig and condaConfig['channels'] and len(condaConfig['channels']) > 0:
         channels = condaConfig['channels']
-        if channels and len(channels) > 0:
-            for channel in channels:
-                [resp, err, code] = conda_run(
-                    Commands.CONFIG, "--env --add channels {}".format(channel), use_exception_handler=True)
+        for channel in channels:
+            [resp, err, code] = conda_run(
+                Commands.CONFIG, "--env --add channels {}".format(channel), use_exception_handler=True)
 
     # Install all Dependencies
 
-    if "dependencies" in condaConfig:
+    if "dependencies" in condaConfig and condaConfig['dependencies'] and len(condaConfig['dependencies']) > 0:
         dependencies = condaConfig['dependencies']
         depList = " ".join(dependencies)
         with pretty_output(FG_BLUE) as p:
@@ -377,12 +375,29 @@ def init_command(args):
         else:
             install_dependencies(condaConfig)
 
+        # Run Setup.py
+
+        program_name = "python setup.py develop"
+        write_msg("Running application install....")
+        call(['python', 'setup.py', 'develop'])
+        call(['tethys', 'manage', 'sync'])
+
         # Run Portal Level Config if present
         if args.portal is not None:
             run_portal_init(args.portal, appName)
         else:
             run_services(file_path, appName)
 
+        # Check to see if any extra scripts need to be run
+
+        if "post" in initOptions and initOptions["post"] and len(initOptions["post"]) > 0:
+            write_msg("Running post installation tasks...")
+            for post in initOptions["post"]:
+                # Attempting to run processes.
+                process = Popen(
+                    post, shell=True, stdout=PIPE)
+                stdout = process.communicate()[0]
+                print(stdout)
         exit(0)
 
     except Exception as e:
