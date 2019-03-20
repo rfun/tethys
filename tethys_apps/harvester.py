@@ -26,6 +26,7 @@ class SingletonHarvester:
     """
     extensions = []
     extension_modules = {}
+    app_modules = {}
     apps = []
     _instance = None
     BLUE = '\033[94m'
@@ -54,7 +55,6 @@ class SingletonHarvester:
             for _, modname, ispkg in pkgutil.iter_modules(tethysext.__path__):
                 if ispkg:
                     tethys_extensions[modname] = 'tethysext.{}'.format(modname)
-
             self._harvest_extension_instances(tethys_extensions)
         except Exception:
             '''DO NOTHING'''
@@ -64,15 +64,23 @@ class SingletonHarvester:
         Searches the apps package for apps
         """
         # Notify user harvesting is taking place
-        if not is_testing_environment():
-            print(self.BLUE + 'Loading Tethys Apps...' + self.ENDC)
 
-        # List the apps packages in directory
-        apps_dir = os.path.join(os.path.dirname(__file__), 'tethysapp')
-        app_packages_list = [app_package for app_package in os.listdir(apps_dir) if app_package != '__pycache__']
+        try:
+            if not is_testing_environment():
+                print(self.BLUE + 'Loading Tethys Apps...' + self.ENDC)
 
-        # Harvest App Instances
-        self._harvest_app_instances(app_packages_list)
+            import tethysapp
+            tethys_apps = dict()
+            for _, modname, ispkg in pkgutil.iter_modules(tethysapp.__path__):
+                if ispkg:
+                    tethys_apps[modname] = 'tethysapp.{}'.format(
+                        modname)
+
+            # Harvest App Instances
+            self._harvest_app_instances(tethys_apps)
+
+        except Exception:
+            '''DO NOTHING'''
 
     def get_url_patterns(self):
         """
@@ -145,7 +153,8 @@ class SingletonHarvester:
 
             try:
                 # Import the "ext" module from the extension package
-                ext_module = __import__(extension_package + ".ext", fromlist=[''])
+                ext_module = __import__(
+                    extension_package + ".ext", fromlist=[''])
 
                 # Retrieve the members of the ext_module and iterate through
                 # them to find the the class that inherits from TethysExtensionBase.
@@ -158,14 +167,16 @@ class SingletonHarvester:
 
                             # Instantiate app and validate
                             ext_instance = ExtensionClass()
-                            validated_ext_instance = self._validate_extension(ext_instance)
+                            validated_ext_instance = self._validate_extension(
+                                ext_instance)
 
                             # sync app with Tethys db
                             ext_instance.sync_with_tethys_db()
 
                             # compile valid apps
                             if validated_ext_instance:
-                                valid_ext_instances.append(validated_ext_instance)
+                                valid_ext_instances.append(
+                                    validated_ext_instance)
                                 valid_extension_modules[extension_name] = extension_package
 
                                 # Notify user that the app has been loaded
@@ -196,20 +207,20 @@ class SingletonHarvester:
         module and instantiate it. Save the list of instantiated AppBase classes.
         """
         valid_app_instance_list = []
+        valid_app_modules = {}
         loaded_apps = []
 
-        for app_package in app_packages_list:
+        for app_name, app_package in app_packages_list.items():
+
             # Skip these things
             if app_package in ['__init__.py', '__init__.pyc', '.gitignore', '.DS_Store']:
                 continue
 
-            # Create the path to the app module in the custom app package
-            app_module_name = '.'.join(['tethys_apps.tethysapp', app_package, 'app'])
-
             try:
                 # Import the app.py module from the custom app package programmatically
                 # (e.g.: apps.apps.<custom_package>.app)
-                app_module = __import__(app_module_name, fromlist=[''])
+
+                app_module = __import__(app_package + ".app", fromlist=[''])
 
                 for name, obj in inspect.getmembers(app_module):
                     # Retrieve the members of the app_module and iterate through
@@ -222,7 +233,8 @@ class SingletonHarvester:
 
                             # Instantiate app and validate
                             app_instance = AppClass()
-                            validated_app_instance = self._validate_app(app_instance)
+                            validated_app_instance = self._validate_app(
+                                app_instance)
 
                             # sync app with Tethys db
                             app_instance.sync_with_tethys_db()
@@ -244,10 +256,12 @@ class SingletonHarvester:
 
                             # compile valid apps
                             if validated_app_instance:
-                                valid_app_instance_list.append(validated_app_instance)
+                                valid_app_modules[app_name] = app_package
+                                valid_app_instance_list.append(
+                                    validated_app_instance)
 
                                 # Notify user that the app has been loaded
-                                loaded_apps.append(app_package)
+                                loaded_apps.append(app_name)
 
                             # We found the app class so we're done
                             break
@@ -261,6 +275,7 @@ class SingletonHarvester:
 
         # Save valid apps
         self.apps = valid_app_instance_list
+        self.app_modules = valid_app_modules
 
         # Update user
         if not is_testing_environment():

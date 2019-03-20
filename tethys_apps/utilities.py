@@ -49,15 +49,16 @@ def get_directories_in_tethys(directory_names, with_app_name=False):
     Returns:
         list: list of paths to directories in apps and extensions.
     """
-    # Determine the directories of tethys apps directory
-    tethysapp_dir = safe_join(os.path.abspath(
-        os.path.dirname(__file__)), 'tethysapp')
-    tethysapp_contents = next(os.walk(tethysapp_dir))[1]
-    potential_dirs = [safe_join(tethysapp_dir, item)
-                      for item in tethysapp_contents]
-
+    potential_dirs = []
     # Determine the directories of tethys extensions
     harvester = SingletonHarvester()
+
+    for _, app_module in harvester.app_modules.items():
+        try:
+            app_module = __import__(app_module, fromlist=[''])
+            potential_dirs.append(app_module.__path__[0])
+        except (ImportError, AttributeError, IndexError):
+            pass
 
     for _, extension_module in harvester.extension_modules.items():
         try:
