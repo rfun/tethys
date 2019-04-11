@@ -57,14 +57,16 @@ def get_directories_in_tethys(directory_names, with_app_name=False):
         try:
             app_module = __import__(app_module, fromlist=[''])
             potential_dirs.append(app_module.__path__[0])
-        except (ImportError, AttributeError, IndexError):
+        except (ImportError, AttributeError, IndexError) as e:
+            print(e)
             pass
 
     for _, extension_module in harvester.extension_modules.items():
         try:
             extension_module = __import__(extension_module, fromlist=[''])
             potential_dirs.append(extension_module.__path__[0])
-        except (ImportError, AttributeError, IndexError):
+        except (ImportError, AttributeError, IndexError) as e:
+            print(e)
             pass
 
     # Check each directory combination

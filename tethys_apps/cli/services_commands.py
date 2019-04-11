@@ -41,7 +41,7 @@ def services_create_persistent_command(args):
 
         with pretty_output(FG_GREEN) as p:
             p.write(
-                'Successfully created new Persistent Store Service: {0}'.format(name))
+                'Successfully created new Persistent Store Service!')
     except AttributeError:
         with pretty_output(FG_RED) as p:
             p.write(
@@ -200,6 +200,7 @@ def remove_service(serviceType, args):
     }
 
     service = services.get(serviceType)
+
     serviceLabel = str(service)
 
     service_id = None

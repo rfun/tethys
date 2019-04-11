@@ -5,7 +5,7 @@ class TethysFunctionExtractor:
     Attributes:
         path (str): The path to a function in the form "app_name.module_name.function_name" or the function object.
     """
-    PATH_PREFIX = 'tethys_apps.tethysapp'
+    PATH_PREFIX = 'tethysapp'
 
     def __init__(self, path, prefix=PATH_PREFIX, throw=False):
         self.path = path
@@ -27,12 +27,15 @@ class TethysFunctionExtractor:
                 module_path, function_name = self.path.rsplit('.', 1)
 
                 # Pre-process handler path
-                full_module_path = '.'.join((self.prefix, module_path)) if self.prefix else module_path
+                full_module_path = '.'.join(
+                    (self.prefix, module_path)) if self.prefix else module_path
 
                 # Import module
-                module = __import__(full_module_path, fromlist=[str(function_name)])
+                module = __import__(full_module_path, fromlist=[
+                                    str(function_name)])
 
             except (ValueError, ImportError) as e:
+                print(e)
                 self._valid = False
                 if self._throw:
                     raise e

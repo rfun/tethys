@@ -478,7 +478,7 @@ class WebProcessingServiceSetting(TethysAppSetting):
     """
 
     web_processing_service = models.ForeignKey(
-       WebProcessingService, on_delete=models.CASCADE, blank=True, null=True)
+        WebProcessingService, on_delete=models.CASCADE, blank=True, null=True)
 
     def clean(self):
         """
@@ -528,11 +528,10 @@ class PersistentStoreConnectionSetting(TethysAppSetting):
         )
 
     """
-   persistent_store_service = models.ForeignKey(PersistentStoreService, on_delete=models.CASCADE, blank=True,
-                                                 null=True)
+    persistent_store_service = models.ForeignKey(
+        PersistentStoreService, on_delete=models.CASCADE, blank=True, null=True)
 
-
-   def clean(self):
+    def clean(self):
         """
         Validate prior to saving changes.
         """
@@ -598,10 +597,10 @@ class PersistentStoreDatabaseSetting(TethysAppSetting):
     """
     spatial = models.BooleanField(default=False)
     dynamic = models.BooleanField(default=False)
-    persistent_store_service = models.ForeignKey(PersistentStoreService, on_delete=models.CASCADE, blank=True, null=True)
+    persistent_store_service = models.ForeignKey(
+        PersistentStoreService, on_delete=models.CASCADE, blank=True, null=True)
 
-
-   def clean(self):
+    def clean(self):
         """
         Validate prior to saving changes.
         """

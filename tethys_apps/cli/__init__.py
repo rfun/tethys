@@ -382,6 +382,8 @@ def tethys_command():
         'app_or_extension', help='Name of the app or extension to uninstall.')
     uninstall_parser.add_argument('-e', '--extension', dest='is_extension', default=False, action='store_true',
                                   help='Flag to denote an extension is being uninstalled')
+    uninstall_parser.add_argument('-f', '--force', dest='is_forced', default=False, action='store_true',
+                                  help='Flag to denote force removal without showing a warning')
     uninstall_parser.set_defaults(func=uc)
 
     # Setup list command

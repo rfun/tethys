@@ -273,11 +273,11 @@ def install_dependencies(condaConfig):
 
     if "dependencies" in condaConfig and condaConfig['dependencies'] and len(condaConfig['dependencies']) > 0:
         dependencies = condaConfig['dependencies']
-        depList = " ".join(dependencies)
+        print(dependencies)
         with pretty_output(FG_BLUE) as p:
             p.write('Installing Dependencies.....')
         [resp, err, code] = conda_run(
-            Commands.INSTALL, depList, use_exception_handler=False, stdout=None, stderr=None)
+            Commands.INSTALL, *dependencies, use_exception_handler=False, stdout=None, stderr=None)
         if code != 0:
             with pretty_output(FG_RED) as p:
                 p.write(
@@ -370,7 +370,12 @@ def init_command(args):
 
         condaConfig = initOptions['conda']
 
+        skip = False
         if "skip" in condaConfig:
+            skip = condaConfig['skip']
+            del condaConfig['skip']
+
+        if skip:
             write_msg("Skipping dependency installation, Skip option found.")
         else:
             install_dependencies(condaConfig)
