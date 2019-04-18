@@ -369,8 +369,13 @@ then
         echo "Setting up the ${CONDA_ENV_NAME} environment..."
         conda env create -n ${CONDA_ENV_NAME} -f "${TETHYS_SRC}/environment.yml"
         conda activate ${CONDA_ENV_NAME}
-        python "${TETHYS_SRC}/setup.py" develop
-    else
+        python "${TETHYS_SRC}/setup.py" develop       
+    fi
+
+    if [ -n "${CREATE_SETTINGS}" ] || [ -n "${SETUP_DB}" ] || [ -n "${INITIALIZE_DB}" ] || \
+        [ -n "${CREATE_TETHYS_SUPER_USER}" ] || [ -n "${CREATE_ENV_SCRIPTS}" ] || \
+        [ -n "${CREATE_SHORTCUTS}" ] 
+    then
         echo "Activating the ${CONDA_ENV_NAME} environment..."
         conda activate ${CONDA_ENV_NAME}
     fi
