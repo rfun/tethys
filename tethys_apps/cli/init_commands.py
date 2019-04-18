@@ -160,7 +160,7 @@ def getServiceFromName(name):
 
 
 def runInteractiveServices(appName):
-    write_msg('Running Interactive Service Mode. Any configuration options in init.yml for services will be ignored...')
+    write_msg('Running Interactive Service Mode. Any configuration options in install.yml for services will be ignored...')
 
     # List existing services
     tempNS = Namespace()
@@ -212,7 +212,7 @@ def runInteractiveServices(appName):
 
         except (KeyboardInterrupt, SystemExit):
             with pretty_output(FG_YELLOW) as p:
-                p.write('\nInit Command cancelled.')
+                p.write('\nInstall Command cancelled.')
             exit(1)
 
 
@@ -225,11 +225,21 @@ def find_and_link(serviceType, settingName, serviceID, appName):
                                     appName,
                                     service['linkParam'],
                                     settingName)
+    else:
+        with pretty_output(FG_RED) as p:
+            p.write(
+                'Warning: Could not find service of type: {} with the name/id: {}'.format(serviceType, serviceID))
 
 
 def run_portal_init(filePath, appName):
+
+    if filePath is None:
+        filePath = './portal.yml'
+
     if not path.exists(filePath):
-        return
+        write_msg(
+            """No Portal Services file found. Moving to look for local app level services.yml...""")
+        return False
 
     try:
         write_msg("Portal init file found...Processing...")
@@ -241,7 +251,7 @@ def run_portal_init(filePath, appName):
             p.write(e)
             p.write(
                 'An unexpected error occurred reading the file. Please try again.')
-            return
+            return False
 
     if "apps" in portal_options and appName in portal_options['apps'] and 'services' in portal_options['apps'][appName]:
         services = portal_options['apps'][appName]['services']
@@ -260,6 +270,8 @@ def run_portal_init(filePath, appName):
         write_msg(
             "No apps configuration found in portal config file. ".format(appName))
 
+    return True
+
 
 def install_dependencies(condaConfig):
      # Add all channels listed in the file.
@@ -267,13 +279,12 @@ def install_dependencies(condaConfig):
         channels = condaConfig['channels']
         for channel in channels:
             [resp, err, code] = conda_run(
-                Commands.CONFIG, "--env --add channels {}".format(channel), use_exception_handler=True)
+                Commands.CONFIG, "--prepend channels {}".format(channel), use_exception_handler=True)
 
     # Install all Dependencies
 
     if "dependencies" in condaConfig and condaConfig['dependencies'] and len(condaConfig['dependencies']) > 0:
         dependencies = condaConfig['dependencies']
-        print(dependencies)
         with pretty_output(FG_BLUE) as p:
             p.write('Installing Dependencies.....')
         [resp, err, code] = conda_run(
@@ -320,6 +331,8 @@ def run_services(filePath, appName):
             runInteractiveServices(appName)
         else:
             if services and len(services) > 0:
+                if services['version']:
+                    del services['version']
                 for serviceType in services:
                     if services[serviceType] is not None:
                         current_services = services[serviceType]
@@ -342,11 +355,11 @@ def init_command(args):
         file_path = args.file
 
         if file_path is None:
-            file_path = './init.yml'
+            file_path = './install.yml'
 
         if not path.exists(file_path):
             write_error(
-                'No Init File found. Please ensure init.yml exists in the root of your app and run the command from that directory')
+                'No Install File found. Please ensure install.yml exists in the root of your app and run the command from that directory')
 
         try:
             with open(file_path) as f:
@@ -388,10 +401,12 @@ def init_command(args):
         call(['tethys', 'manage', 'sync'])
 
         # Run Portal Level Config if present
-        if args.portal is not None:
-            run_portal_init(args.portal, appName)
-        else:
+        if args.force_services:
             run_services(file_path, appName)
+        else:
+            portal_result = run_portal_init(args.portal_file, appName)
+            if not portal_result:
+                run_services(file_path, appName)
 
         # Check to see if any extra scripts need to be run
 

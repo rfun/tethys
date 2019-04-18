@@ -21,18 +21,18 @@ You will need to copy the source code of the app to the server. There are many m
 2. Install the App
 ==================
 
-Using Init (Recommended):
+Using Install (Recommended):
 -------------------------
 
-Using the ``init`` cli command, you can install the application in one quick step. The ``init`` command will install all the dependencies, link any services that you might need for your application and can also rely on the portal configuration to link default services to your application (as configured by the portal administrator).
-The init command uses three configuration files:
+Using the ``install`` cli command, you can install the application in one quick step. The ``install`` command will install all the dependencies, link any services that you might need for your application and can also rely on the portal configuration to link default services to your application (as configured by the portal administrator).
+The install command uses three configuration files:
 
-.. _tethys_init_yml:
+.. _tethys_install_yml:
 
-init.yml 
+install.yml 
 --------
 
-This file is generated with your application scaffold. Please do NOT list any dependencies in setup.py. Instead list them in the :file:`init.yml` file. This file should be committed with your application code in order to aid installation on a Tethys Portal
+This file is generated with your application scaffold. Please do NOT list any dependencies in setup.py. Instead list them in the :file:`install.yml` file. This file should be committed with your application code in order to aid installation on a Tethys Portal
 
 .. code-block:: python
 
@@ -54,9 +54,9 @@ This file is generated with your application scaffold. Please do NOT list any de
   	    - ./test.sh
 
 
-**init.yml Options:**
+**install.yml Options:**
 
-* **version**: Indicated the version of the :file:`init.yml` file. Current default : 1.0
+* **version**: Indicated the version of the :file:`install.yml` file. Current default : 1.0
 * **name**: This should match the app-package name in your setup.py
 
 * **conda/skip**: If enabled, it will skip the installation of dependencies and channels
@@ -73,7 +73,7 @@ This file is generated with your application scaffold. Please do NOT list any de
 services.yml 
 ------------
 
-This file will be created by the portal administrator who has created/has access to all the service in the portal. This file will take precedence over the portal configuration file, which will only be used when this file isn't present. 
+This file will be created by the portal administrator who has created/has access to all the service in the portal. This file will only be run by default if there is no portal services config file present (see below). However you can force the use of this file over the portal config by specifying the `--force-services` tag on the install command.  
 
 .. code-block:: python
 
