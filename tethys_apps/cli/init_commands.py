@@ -5,9 +5,6 @@ from tethys_apps.cli.services_commands import (services_create_persistent_comman
                                                services_list_command
                                                )
 
-from tethys_services.models import (
-    SpatialDatasetService, DatasetService, PersistentStoreService, WebProcessingService)
-
 from tethys_apps.models import TethysApp
 
 from tethys_apps.utilities import link_service_to_app_setting
@@ -17,30 +14,6 @@ from argparse import Namespace
 from conda.cli.python_api import run_command as conda_run, Commands
 import yaml
 from subprocess import (call, Popen, PIPE)
-# @TODO : Probably have better error messages/prompts
-
-services = {
-    'spatial': {
-        'create': services_create_spatial_command,
-        'model': SpatialDatasetService,
-        'linkParam': 'ds_spatial'
-    },
-    "dataset": {
-        'create': services_create_dataset_command,
-        'model': DatasetService,
-        'linkParam': 'ds_dataset'
-    },
-    "persistent": {
-        'create': services_create_persistent_command,
-        'model': PersistentStoreService,
-        'linkParam': 'ps_database'
-    },
-    'wps': {
-        'create': services_create_wps_command,
-        'model': WebProcessingService,
-        'linkParam': 'wps'
-    }
-}
 
 
 def write_error(msg):
@@ -232,6 +205,34 @@ def find_and_link(serviceType, settingName, serviceID, appName):
 
 
 def run_portal_init(filePath, appName):
+
+    # Have to import within function or else install partial on a system fails
+
+    from tethys_services.models import (
+        SpatialDatasetService, DatasetService, PersistentStoreService, WebProcessingService)
+
+    services = {
+        'spatial': {
+            'create': services_create_spatial_command,
+            'model': SpatialDatasetService,
+            'linkParam': 'ds_spatial'
+        },
+        "dataset": {
+            'create': services_create_dataset_command,
+            'model': DatasetService,
+            'linkParam': 'ds_dataset'
+        },
+        "persistent": {
+            'create': services_create_persistent_command,
+            'model': PersistentStoreService,
+            'linkParam': 'ps_database'
+        },
+        'wps': {
+            'create': services_create_wps_command,
+            'model': WebProcessingService,
+            'linkParam': 'wps'
+        }
+    }
 
     if filePath is None:
         filePath = './portal.yml'
