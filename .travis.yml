@@ -17,7 +17,7 @@ install:
   - cd ..
   - mv tethys src
   - brew uninstall --ignore-dependencies python
-  - sudo bash ./src/scripts/install_tethys.sh --partial-tethys-install m -t $PWD
+  - bash ./src/scripts/install_tethys.sh --partial-tethys-install m -t $PWD
   - export PATH="$PWD/miniconda/bin:$PATH"
   - bash ./src/scripts/install_tethys.sh --partial-tethys-install esdat -t $PWD
 
