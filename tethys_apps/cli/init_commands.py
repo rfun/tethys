@@ -1,19 +1,15 @@
+import yaml
 from os import path
+from subprocess import (call, Popen, PIPE)
+from argparse import Namespace
+from conda.cli.python_api import run_command as conda_run, Commands
+from django.core.exceptions import ObjectDoesNotExist
 from tethys_apps.cli.cli_colors import pretty_output, FG_RED, FG_BLUE, FG_YELLOW
 from tethys_apps.cli.services_commands import (services_create_persistent_command, services_create_spatial_command,
                                                services_create_dataset_command, services_create_wps_command,
                                                services_list_command
                                                )
-
-from tethys_apps.models import TethysApp
-
 from tethys_apps.utilities import link_service_to_app_setting
-
-from django.core.exceptions import ObjectDoesNotExist
-from argparse import Namespace
-from conda.cli.python_api import run_command as conda_run, Commands
-import yaml
-from subprocess import (call, Popen, PIPE)
 
 
 def write_error(msg):
@@ -207,6 +203,7 @@ def find_and_link(serviceType, settingName, serviceID, appName):
 def run_portal_init(filePath, appName):
 
     # Have to import within function or else install partial on a system fails
+    from tethys_apps.models import TethysApp
 
     from tethys_services.models import (
         SpatialDatasetService, DatasetService, PersistentStoreService, WebProcessingService)
