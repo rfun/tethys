@@ -825,8 +825,10 @@ def log_pull_stream(stream):
 
                         elif current_status in PROGRESS_STATUSES:
                             # add messages with progress to dictionary to print at the bottom of the screen
-                            progress_messages[current_id] = {'id': current_id, 'status': current_status,
-                                                             'progress': current_progress}
+                            progress_messages[current_id] = {
+                                'id': current_id, 'status': current_status,
+                                'progress': current_progress
+                            }
                         else:
                             # add all other messages to list to show above progress messages
                             message_log.append("{id}: {status} {progress}".format(
