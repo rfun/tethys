@@ -19,8 +19,8 @@ def test_command(args):
     primary_process = ['python', manage_path, 'test']
 
     try:
-        import tethysapp.test_app
-    except Exception as e:
+        import tethysapp.test_app  # noqa: F401
+    except Exception:
 
         print("Test App not found. Installing.....")
         setup_path = os.path.join(
@@ -29,8 +29,8 @@ def test_command(args):
                         stdout=FNULL, stderr=subprocess.STDOUT, cwd=setup_path)
 
     try:
-        import tethysext.test_extension
-    except Exception as e:
+        import tethysext.test_extension  # noqa: F401
+    except Exception:
 
         print("Test Extension not found. Installing.....")
         setup_path = os.path.join(

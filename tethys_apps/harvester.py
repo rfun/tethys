@@ -7,7 +7,6 @@
 * License: BSD 2-Clause
 ********************************************************************************
 """
-import os
 import inspect
 import logging
 import pkgutil

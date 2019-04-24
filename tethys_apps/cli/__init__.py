@@ -208,7 +208,7 @@ def tethys_command():
     services_remove_dataset.set_defaults(
         func=services_remove_dataset_command)
 
- # tethys services remove Dataset
+    # tethys services remove Dataset
     services_remove_wps = services_remove_subparsers.add_parser('wps',
                                                                 help='Remove a wps Service.')
     services_remove_wps.add_argument(
@@ -261,7 +261,8 @@ def tethys_command():
                                          help='The connection of the Service in the form '
                                          '"<username>:<password>@<protocol>//<host>:<port>"')
     services_create_dataset.add_argument('-p', '--public-endpoint', required=False, type=str,
-                                         help='The public-facing endpoint, if different than what was provided with the '
+                                         help='The public-facing endpoint, \
+                                         if different than what was provided with the '
                                          '--connection argument, of the form "<host>:<port>"')
     services_create_dataset.add_argument('-k', '--apikey', required=False, type=str,
                                          help='The API key, if any, required to establish a connection.')

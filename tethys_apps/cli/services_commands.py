@@ -126,7 +126,7 @@ def services_create_dataset_command(args):
         if 'http' not in endpoint or '://' not in endpoint:
             raise IndexError()
 
-        if (public_endpoint is not ""):
+        if (public_endpoint != ""):
             if ('http' not in public_endpoint or '://' not in public_endpoint):
                 raise FormatError()
 
@@ -171,7 +171,7 @@ def services_create_wps_command(args):
             raise IndexError()
 
         new_service = currentService(
-            name=name, endpoint=endpoint, username=service_username)
+            name=name, endpoint=endpoint, username=service_username, password=service_password)
         new_service.save()
 
         with pretty_output(FG_GREEN) as p:
@@ -190,7 +190,8 @@ def services_create_wps_command(args):
 
 def remove_service(serviceType, args):
 
-    from tethys_services.models import SpatialDatasetService, DatasetService, PersistentStoreService, WebProcessingService
+    from tethys_services.models import (SpatialDatasetService, DatasetService,
+                                        PersistentStoreService, WebProcessingService)
 
     services = {
         "spatial": SpatialDatasetService,
@@ -266,7 +267,8 @@ def services_list_command(args):
     """
     Interact with Tethys Services (Spatial/Persistent Stores) to create them and/or link them to existing apps
     """
-    from tethys_services.models import SpatialDatasetService, PersistentStoreService, DatasetService, WebProcessingService
+    from tethys_services.models import (SpatialDatasetService, PersistentStoreService,
+                                        DatasetService, WebProcessingService)
     list_persistent = False
     list_spatial = False
     list_dataset = False

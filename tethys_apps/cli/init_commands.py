@@ -23,68 +23,34 @@ def write_msg(msg):
         p.write(msg)
 
 
-def create_and_link(serviceKey, config, appName=""):
+def getServiceFromID(services, id):
 
-    service = services.get(serviceKey)
-    newService = None
-
-    if appName:
-        config['name'] = "{0}-{1}".format(appName, config['name'])
+    from tethys_services.models import (SpatialDatasetService, PersistentStoreService,
+                                        DatasetService, WebProcessingService)
 
     try:
-        try:
-            serviceKey = int(serviceKey)
-            newService = service['model'].objects.get(pk=serviceKey)
-        except ValueError:
-            newService = service['model'].objects.get(name=config['name'])
-            with pretty_output(FG_BLUE) as p:
-                p.write(
-                    'Service with name "{0}" already exists. Skipping add.'.format(config['name']))
-    except ObjectDoesNotExist:
-        if not service:
-            write_error(
-                'Invalid Service Type : {0}. \n Please choose from the following options: [{1}]'.format(
-                    serviceKey, ', '.join(services.keys())))
-
-        serviceMethod = service['create']
-        tempNS = Namespace()
-
-        for conf in config.keys():
-            setattr(tempNS, conf, config[conf])
-
-        newService = serviceMethod(tempNS)
-
-    link_service_to_app_setting(
-        serviceKey, config['name'], appName, service['linkParam'], config['setting-name'])
-
-
-def getServiceFromID(id):
-
-    from tethys_services.models import SpatialDatasetService, PersistentStoreService, DatasetService, WebProcessingService
-
-    try:
-        persistent_entries = PersistentStoreService.objects.get(id=id)
+        persistent_entries = PersistentStoreService.objects.get(id=id)  # noqa: F841
         return {"service_type": "persistent",
                 "linkParam": services['persistent']['linkParam']}
     except ObjectDoesNotExist:
         pass
 
     try:
-        entries = SpatialDatasetService.objects.get(id=id)
+        entries = SpatialDatasetService.objects.get(id=id)  # noqa: F841
         return {"service_type": "spatial",
                 "linkParam": services['spatial']['linkParam']}
     except ObjectDoesNotExist:
         pass
 
     try:
-        entries = DatasetService.objects.get(id=id)
+        entries = DatasetService.objects.get(id=id)  # noqa: F841
         return {"service_type": "dataset",
                 "linkParam": services['dataset']['linkParam']}
     except ObjectDoesNotExist:
         pass
 
     try:
-        entries = WebProcessingService.objects.get(id=id)
+        entries = WebProcessingService.objects.get(id=id)  # noqa: F841
         return {"service_type": "wps",
                 "linkParam": services['persistent']['linkParam']}
     except ObjectDoesNotExist:
@@ -93,33 +59,34 @@ def getServiceFromID(id):
     return False
 
 
-def getServiceFromName(name):
+def getServiceFromName(name, services):
 
-    from tethys_services.models import SpatialDatasetService, PersistentStoreService, DatasetService, WebProcessingService
+    from tethys_services.models import (SpatialDatasetService, PersistentStoreService,
+                                        DatasetService, WebProcessingService)
 
     try:
-        persistent_entries = PersistentStoreService.objects.get(name=name)
+        persistent_entries = PersistentStoreService.objects.get(name=name)  # noqa: F841
         return {"service_type": "persistent",
                 "linkParam": services['persistent']['linkParam']}
     except ObjectDoesNotExist:
         pass
 
     try:
-        entries = SpatialDatasetService.objects.get(name=name)
+        entries = SpatialDatasetService.objects.get(name=name)  # noqa: F841
         return {"service_type": "spatial",
                 "linkParam": services['spatial']['linkParam']}
     except ObjectDoesNotExist:
         pass
 
     try:
-        entries = DatasetService.objects.get(name=name)
+        entries = DatasetService.objects.get(name=name)  # noqa: F841
         return {"service_type": "dataset",
                 "linkParam": services['dataset']['linkParam']}
     except ObjectDoesNotExist:
         pass
 
     try:
-        entries = WebProcessingService.objects.get(name=name)
+        entries = WebProcessingService.objects.get(name=name)  # noqa: F841
         return {"service_type": "wps",
                 "linkParam": services['wps']['linkParam']}
     except ObjectDoesNotExist:
@@ -128,8 +95,9 @@ def getServiceFromName(name):
     return False
 
 
-def runInteractiveServices(appName):
-    write_msg('Running Interactive Service Mode. Any configuration options in install.yml for services will be ignored...')
+def runInteractiveServices(services, appName):
+    write_msg('Running Interactive Service Mode. Any configuration \
+        options in install.yml for services will be ignored...')
 
     # List existing services
     tempNS = Namespace()
@@ -185,9 +153,9 @@ def runInteractiveServices(appName):
             exit(1)
 
 
-def find_and_link(serviceType, settingName, serviceID, appName):
+def find_and_link(serviceType, settingName, serviceID, appName, services):
 
-    service = getServiceFromName(serviceID)
+    service = getServiceFromName(serviceID, services)
     if service:
         link_service_to_app_setting(service['service_type'],
                                     serviceID,
@@ -200,36 +168,7 @@ def find_and_link(serviceType, settingName, serviceID, appName):
                 'Warning: Could not find service of type: {} with the name/id: {}'.format(serviceType, serviceID))
 
 
-def run_portal_init(filePath, appName):
-
-    # Have to import within function or else install partial on a system fails
-    from tethys_apps.models import TethysApp
-
-    from tethys_services.models import (
-        SpatialDatasetService, DatasetService, PersistentStoreService, WebProcessingService)
-
-    services = {
-        'spatial': {
-            'create': services_create_spatial_command,
-            'model': SpatialDatasetService,
-            'linkParam': 'ds_spatial'
-        },
-        "dataset": {
-            'create': services_create_dataset_command,
-            'model': DatasetService,
-            'linkParam': 'ds_dataset'
-        },
-        "persistent": {
-            'create': services_create_persistent_command,
-            'model': PersistentStoreService,
-            'linkParam': 'ps_database'
-        },
-        'wps': {
-            'create': services_create_wps_command,
-            'model': WebProcessingService,
-            'linkParam': 'wps'
-        }
-    }
+def run_portal_init(services, filePath, appName):
 
     if filePath is None:
         filePath = './portal.yml'
@@ -259,7 +198,7 @@ def run_portal_init(filePath, appName):
                     current_services = services[serviceType]
                     for service_setting_name in current_services:
                         find_and_link(serviceType, service_setting_name,
-                                      current_services[service_setting_name], appName)
+                                      current_services[service_setting_name], appName, services)
         else:
             write_msg(
                 "No app configuration found for app: {} in portal config file. ".format(appName))
@@ -272,7 +211,7 @@ def run_portal_init(filePath, appName):
 
 
 def install_dependencies(condaConfig):
-     # Add all channels listed in the file.
+    # Add all channels listed in the file.
     if "channels" in condaConfig and condaConfig['channels'] and len(condaConfig['channels']) > 0:
         channels = condaConfig['channels']
         for channel in channels:
@@ -293,7 +232,7 @@ def install_dependencies(condaConfig):
                     'Warning: Dependencies installation ran into an error. Please try again or a manual install')
 
 
-def run_services(filePath, appName):
+def run_services(servicesConfig, filePath, appName):
 
     filePath = './services.yml'
 
@@ -326,7 +265,7 @@ def run_services(filePath, appName):
 
     if not skip:
         if interactive_mode:
-            runInteractiveServices(appName)
+            runInteractiveServices(servicesConfig, appName)
         else:
             if services and len(services) > 0:
                 if services['version']:
@@ -336,7 +275,7 @@ def run_services(filePath, appName):
                         current_services = services[serviceType]
                         for service_setting_name in current_services:
                             find_and_link(serviceType, service_setting_name,
-                                          current_services[service_setting_name], appName)
+                                          current_services[service_setting_name], appName, servicesConfig)
         write_msg("Services Configuration Completed.")
     else:
         write_msg(
@@ -347,6 +286,34 @@ def init_command(args):
     """
     Init Command
     """
+
+    # Have to import within function or else install partial on a system fails
+    from tethys_services.models import (
+        SpatialDatasetService, DatasetService, PersistentStoreService, WebProcessingService)
+
+    services = {
+        'spatial': {
+            'create': services_create_spatial_command,
+            'model': SpatialDatasetService,
+            'linkParam': 'ds_spatial'
+        },
+        "dataset": {
+            'create': services_create_dataset_command,
+            'model': DatasetService,
+            'linkParam': 'ds_dataset'
+        },
+        "persistent": {
+            'create': services_create_persistent_command,
+            'model': PersistentStoreService,
+            'linkParam': 'ps_database'
+        },
+        'wps': {
+            'create': services_create_wps_command,
+            'model': WebProcessingService,
+            'linkParam': 'wps'
+        }
+    }
+
     try:
         appName = None
         # Check if input config file exists. We Can't do anything without it
@@ -357,7 +324,8 @@ def init_command(args):
 
         if not path.exists(file_path):
             write_error(
-                'No Install File found. Please ensure install.yml exists in the root of your app and run the command from that directory')
+                'No Install File found. Please ensure install.yml exists in the \
+                root of your app and run the command from that directory')
 
         try:
             with open(file_path) as f:
@@ -393,18 +361,17 @@ def init_command(args):
 
         # Run Setup.py
 
-        program_name = "python setup.py develop"
         write_msg("Running application install....")
         call(['python', 'setup.py', 'develop'])
         call(['tethys', 'manage', 'sync'])
 
         # Run Portal Level Config if present
         if args.force_services:
-            run_services(file_path, appName)
+            run_services(services, file_path, appName)
         else:
-            portal_result = run_portal_init(args.portal_file, appName)
+            portal_result = run_portal_init(services, args.portal_file, appName)
             if not portal_result:
-                run_services(file_path, appName)
+                run_services(services, file_path, appName)
 
         # Check to see if any extra scripts need to be run
 

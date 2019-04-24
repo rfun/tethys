@@ -218,11 +218,11 @@ def remove_ps_database_setting(app_package, name, force=False):
 def link_service_to_app_setting(service_type, service_uid, app_package, setting_type, setting_uid):
     """
     Links a Tethys Service to a TethysAppSetting.
-    :param service_type: The type of service being linked to an app. 
+    :param service_type: The type of service being linked to an app.
         Must be either 'spatial' or 'persistent' or 'dataset' or 'wps'.
     :param service_uid: The name or id of the service being linked to an app.
     :param app_package: The package name of the app whose setting is being linked to a service.
-    :param setting_type: The type of setting being linked to a service. 
+    :param setting_type: The type of setting being linked to a service.
         Must be one of the following: 'ps_database',
         'ps_connection', or 'ds_spatial'.
     :param setting_uid: The name or id of the setting being linked to a service.
@@ -230,7 +230,7 @@ def link_service_to_app_setting(service_type, service_uid, app_package, setting_
     """
     from tethys_apps.cli.cli_colors import pretty_output, FG_GREEN, FG_RED
     from tethys_sdk.app_settings import (SpatialDatasetServiceSetting, PersistentStoreConnectionSetting,
-                                         PersistentStoreDatabaseSetting, DatasetServiceSetting,
+                                         PersistentStoreDatabaseSetting,
                                          WebProcessingServiceSetting)
     from tethys_services.models import (
         SpatialDatasetService, DatasetService, PersistentStoreService, WebProcessingService)
