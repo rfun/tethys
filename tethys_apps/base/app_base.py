@@ -95,32 +95,27 @@ class TethysBase(TethysBaseMixin):
                 # Create django url object
                 if isinstance(url_map.controller, str):
                     root_controller_path = 'tethysext' if is_extension else 'tethysapp'
-                    full_controller_path = '.'.join(
-                        [root_controller_path, url_map.controller])
+                    full_controller_path = '.'.join([root_controller_path, url_map.controller])
                     controller_parts = full_controller_path.split('.')
                     module_name = '.'.join(controller_parts[:-1])
                     function_name = controller_parts[-1]
                     try:
-                        module = __import__(
-                            module_name, fromlist=[function_name])
+                        module = __import__(module_name, fromlist=[function_name])
                     except Exception as e:
                         error_msg = 'The following error occurred while trying to import the controller function ' \
-                                    '"{0}":\n {1}'.format(
-                                        url_map.controller, traceback.format_exc(2))
+                                    '"{0}":\n {1}'.format(url_map.controller, traceback.format_exc(2))
                         tethys_log.error(error_msg)
                         raise e
                     try:
                         controller_function = getattr(module, function_name)
                     except AttributeError as e:
                         error_msg = 'The following error occurred while trying to access the controller function ' \
-                                    '"{0}":\n {1}'.format(
-                                        url_map.controller, traceback.format_exc(2))
+                                    '"{0}":\n {1}'.format(url_map.controller, traceback.format_exc(2))
                         tethys_log.error(error_msg)
                         raise e
                 else:
                     controller_function = url_map.controller
-                django_url = url(
-                    url_map.url, controller_function, name=url_map.name)
+                django_url = url(url_map.url, controller_function, name=url_map.name)
 
                 # Append to namespace list
                 url_patterns[namespace].append(django_url)
@@ -589,8 +584,7 @@ class TethysAppBase(TethysBase):
                         group_permissions.append(permission_codename)
 
                     # Store all groups for all apps
-                    app_groups[group_name] = {
-                        'permissions': group_permissions, 'app_package': self.package}
+                    app_groups[group_name] = {'permissions': group_permissions, 'app_package': self.package}
 
         # Get the TethysApp content type
         tethys_content_type = ContentType.objects.get(
@@ -629,8 +623,7 @@ class TethysAppBase(TethysBase):
                 p.save()
 
         # Remove any groups that no longer exist
-        db_groups = Group.objects.filter(
-            name__icontains=perm_codename_prefix).all()
+        db_groups = Group.objects.filter(name__icontains=perm_codename_prefix).all()
         db_apps = TethysApp.objects.all()
         db_app_names = [db_app.package for db_app in db_apps]
 
@@ -775,16 +768,13 @@ class TethysAppBase(TethysBase):
         elif user is None:
             pass
         else:
-            raise ValueError(
-                "Invalid type for argument 'user': must be either an User or HttpRequest object.")
+            raise ValueError("Invalid type for argument 'user': must be either an User or HttpRequest object.")
 
         if not username:
             username = 'anonymous_user'
 
-        project_directory = os.path.dirname(
-            sys.modules[cls.__module__].__file__)
-        workspace_directory = os.path.join(
-            project_directory, 'workspaces', 'user_workspaces', username)
+        project_directory = os.path.dirname(sys.modules[cls.__module__].__file__)
+        workspace_directory = os.path.join(project_directory, 'workspaces', 'user_workspaces', username)
         return TethysWorkspace(workspace_directory)
 
     @classmethod
@@ -821,10 +811,8 @@ class TethysAppBase(TethysBase):
         # Find the path to the app project directory
         # Hint: cls is a child class of this class.
         # Credits: http://stackoverflow.com/questions/4006102/ is-possible-to-know-the-_path-of-the-file-of-a-subclass-in-python  # noqa: E501
-        project_directory = os.path.dirname(
-            sys.modules[cls.__module__].__file__)
-        workspace_directory = os.path.join(
-            project_directory, 'workspaces', 'app_workspace')
+        project_directory = os.path.dirname(sys.modules[cls.__module__].__file__)
+        workspace_directory = os.path.join(project_directory, 'workspaces', 'app_workspace')
         return TethysWorkspace(workspace_directory)
 
     @classmethod
@@ -854,8 +842,7 @@ class TethysAppBase(TethysBase):
             custom_setting = custom_settings.get(name=name)
             return custom_setting.get_value()
         except ObjectDoesNotExist:
-            raise TethysAppSettingDoesNotExist(
-                'CustomTethysAppSetting', name, cls.name)
+            raise TethysAppSettingDoesNotExist('CustomTethysAppSetting', name, cls.name)
 
     @classmethod
     def get_dataset_service(cls, name, as_public_endpoint=False, as_endpoint=False,
@@ -891,8 +878,7 @@ class TethysAppBase(TethysBase):
             dataset_services_setting.get_value(as_public_endpoint=as_public_endpoint, as_endpoint=as_endpoint,
                                                as_engine=as_engine)
         except ObjectDoesNotExist:
-            raise TethysAppSettingDoesNotExist(
-                'DatasetServiceSetting', name, cls.name)
+            raise TethysAppSettingDoesNotExist('DatasetServiceSetting', name, cls.name)
 
     @classmethod
     def get_spatial_dataset_service(cls, name, as_public_endpoint=False, as_endpoint=False, as_wms=False,
@@ -936,8 +922,7 @@ class TethysAppBase(TethysBase):
                 as_engine=as_engine
             )
         except ObjectDoesNotExist:
-            raise TethysAppSettingDoesNotExist(
-                'SpatialDatasetServiceSetting', name, cls.name)
+            raise TethysAppSettingDoesNotExist('SpatialDatasetServiceSetting', name, cls.name)
 
     @classmethod
     def get_web_processing_service(cls, name, as_public_endpoint=False, as_endpoint=False, as_engine=False):
@@ -970,8 +955,7 @@ class TethysAppBase(TethysBase):
             return wps_service_setting.get_value(as_public_endpoint=as_public_endpoint,
                                                  as_endpoint=as_endpoint, as_engine=as_engine)
         except ObjectDoesNotExist:
-            raise TethysAppSettingDoesNotExist(
-                'WebProcessingServiceSetting', name, cls.name)
+            raise TethysAppSettingDoesNotExist('WebProcessingServiceSetting', name, cls.name)
 
     @classmethod
     def get_persistent_store_connection(cls, name, as_url=False, as_sessionmaker=False):
@@ -1009,11 +993,9 @@ class TethysAppBase(TethysBase):
             ps_connection_setting = ps_connection_settings.get(name=name)
             return ps_connection_setting.get_value(as_url=as_url, as_sessionmaker=as_sessionmaker, as_engine=as_engine)
         except ObjectDoesNotExist:
-            raise TethysAppSettingDoesNotExist(
-                'PersistentStoreConnectionSetting', name, cls.name)
+            raise TethysAppSettingDoesNotExist('PersistentStoreConnectionSetting', name, cls.name)
         except TethysAppSettingNotAssigned:
-            cls._log_tethys_app_setting_not_assigned_error(
-                'PersistentStoreConnectionSetting', name)
+            cls._log_tethys_app_setting_not_assigned_error('PersistentStoreConnectionSetting', name)
 
     @classmethod
     def get_persistent_store_database(cls, name, as_url=False, as_sessionmaker=False):
@@ -1053,11 +1035,9 @@ class TethysAppBase(TethysBase):
             return ps_database_setting.get_value(with_db=True, as_url=as_url, as_sessionmaker=as_sessionmaker,
                                                  as_engine=as_engine)
         except ObjectDoesNotExist:
-            raise TethysAppSettingDoesNotExist(
-                'PersistentStoreDatabaseSetting', verified_name, cls.name)
+            raise TethysAppSettingDoesNotExist('PersistentStoreDatabaseSetting', verified_name, cls.name)
         except TethysAppSettingNotAssigned:
-            cls._log_tethys_app_setting_not_assigned_error(
-                'PersistentStoreDatabaseSetting', verified_name)
+            cls._log_tethys_app_setting_not_assigned_error('PersistentStoreDatabaseSetting', verified_name)
 
     @classmethod
     def create_persistent_store(cls, db_name, connection_name, spatial=False, initializer='', refresh=False,
@@ -1102,8 +1082,7 @@ class TethysAppBase(TethysBase):
         else:
             verified_db_name = db_name
             if connection_name is None:
-                raise ValueError(
-                    'The connection_name cannot be None unless running in the testing environment.')
+                raise ValueError('The connection_name cannot be None unless running in the testing environment.')
 
         try:
             if connection_name is None:
@@ -1114,19 +1093,16 @@ class TethysAppBase(TethysBase):
         except ObjectDoesNotExist:
             if connection_name is None:
                 raise TethysAppSettingDoesNotExist(
-                    'PersistentStoreDatabaseSetting named "{0}" does not exist.'.format(
-                        db_name),
+                    'PersistentStoreDatabaseSetting named "{0}" does not exist.'.format(db_name),
                     connection_name, cls.name)
             else:
-                raise TethysAppSettingDoesNotExist(
-                    'PersistentStoreConnectionSetting ', connection_name, cls.name)
+                raise TethysAppSettingDoesNotExist('PersistentStoreConnectionSetting ', connection_name, cls.name)
 
         ps_service = ps_setting.persistent_store_service
 
         # Check if persistent store database setting already exists before creating it
         try:
-            db_setting = db_app.persistent_store_database_settings.get(
-                name=verified_db_name)
+            db_setting = db_app.persistent_store_database_settings.get(name=verified_db_name)
             db_setting.persistent_store_service = ps_service
             db_setting.initializer = initializer
             db_setting.save()
@@ -1149,8 +1125,7 @@ class TethysAppBase(TethysBase):
             db_app.save()
 
         # Create the new database
-        db_setting.create_persistent_store_database(
-            refresh=refresh, force_first_time=force_first_time)
+        db_setting.create_persistent_store_database(refresh=refresh, force_first_time=force_first_time)
         return True
 
     @classmethod
@@ -1223,11 +1198,9 @@ class TethysAppBase(TethysBase):
         ps_database_settings = db_app.persistent_store_database_settings
 
         if dynamic_only:
-            ps_database_settings = ps_database_settings.filter(
-                persistentstoredatabasesetting__dynamic=True)
+            ps_database_settings = ps_database_settings.filter(persistentstoredatabasesetting__dynamic=True)
         elif static_only:
-            ps_database_settings = ps_database_settings.filter(
-                persistentstoredatabasesetting__dynamic=False)
+            ps_database_settings = ps_database_settings.filter(persistentstoredatabasesetting__dynamic=False)
         return [ps_database_setting.name for ps_database_setting in ps_database_settings
                 if TESTING_DB_FLAG not in ps_database_setting.name]
 

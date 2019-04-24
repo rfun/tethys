@@ -6,61 +6,61 @@
 name: tethys
 
 channels:
- - tethysplatform
- - conda-forge
- - defaults
+- tethysplatform
+- conda-forge
+- defaults
 
 dependencies:
- - python=3.6*
+- python=3.6*
 
- # system dependencies
- - pycrypto
- - pyopenssl
- - docker-py
+# system dependencies
+- pycrypto
+- pyopenssl
+- docker-py
 
- # database dependencies
- - postgresql
- - postgis
- - psycopg2
- - sqlalchemy
- - geoalchemy2
+# database dependencies
+- postgresql
+- postgis
+- psycopg2
+- sqlalchemy
+- geoalchemy2
 
- # plotting dependencies
- - plotly
- - bokeh
+# plotting dependencies
+- plotly
+- bokeh
 
- # external services dependencies
- - tethys_dataset_services>=2.0.0
- - hs_restclient
- - owslib
- - requests
- - social-auth-app-django
- - dask
- - tethys_dask_scheduler>=1.0.2
+# external services dependencies
+- tethys_dataset_services>=2.0.0
+- hs_restclient
+- owslib
+- requests
+- social-auth-app-django
+- dask
+- tethys_dask_scheduler>=1.0.2
 
- # django/plugin dependencies
- - django=2.1.*
- - django-filter
- - djangorestframework
- - django-bootstrap3
- - django-model-utils
- - django-guardian
+# django/plugin dependencies
+- django=2.1.*
+- django-filter
+- djangorestframework
+- django-bootstrap3
+- django-model-utils
+- django-guardian
 
- # tests dependencies
- - requests-mock
- - selenium
- - coverage
- - factory_boy
+# tests dependencies
+- requests-mock
+- selenium
+- coverage
+- factory_boy
 
- # for now
- - pillow
- - pip
- - future
+# for now
+- pillow
+- pip
+- future
 
- # Conda to allow API Access to Conda
- - conda
+# Conda to allow Python API access to Conda Install
+- conda
 
- - pip:
+- pip:
     - django-gravatar2
     - django-simple-captcha
     - django-termsandconditions

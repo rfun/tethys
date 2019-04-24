@@ -28,8 +28,7 @@ try:
     from tethys_services.models import (DatasetService, SpatialDatasetService,
                                         WebProcessingService, PersistentStoreService)
 except RuntimeError:
-    log.exception(
-        'An error occurred while trying to import tethys service models.')
+    log.exception('An error occurred while trying to import tethys service models.')
 
 
 class TethysApp(models.Model, TethysBaseMixin):
@@ -243,8 +242,7 @@ class CustomSetting(TethysAppSetting):
     TYPE_FLOAT = 'FLOAT'
     TYPE_BOOLEAN = 'BOOLEAN'
     VALID_TYPES = (TYPE_STRING, TYPE_INTEGER, TYPE_FLOAT, TYPE_BOOLEAN)
-    VALID_BOOL_STRINGS = ('true', 'false', 'yes', 'no',
-                          't', 'f', 'y', 'n', '1', '0')
+    VALID_BOOL_STRINGS = ('true', 'false', 'yes', 'no', 't', 'f', 'y', 'n', '1', '0')
     TRUTHY_BOOL_STRINGS = ('true', 'yes', 't', 'y', '1')
     TYPE_CHOICES = (
         (TYPE_STRING, 'String'),
@@ -254,8 +252,7 @@ class CustomSetting(TethysAppSetting):
     )
     value = models.CharField(max_length=1024, blank=True, default='')
     default = models.CharField(max_length=1024, blank=True, default='')
-    type = models.CharField(
-        max_length=200, choices=TYPE_CHOICES, default=TYPE_STRING)
+    type = models.CharField(max_length=200, choices=TYPE_CHOICES, default=TYPE_STRING)
 
     def clean(self):
         """
@@ -358,8 +355,7 @@ class DatasetServiceSetting(TethysAppSetting):
     CKAN = DatasetService.CKAN
     HYDROSHARE = DatasetService.HYDROSHARE
 
-    dataset_service = models.ForeignKey(
-        DatasetService, on_delete=models.CASCADE, blank=True, null=True)
+    dataset_service = models.ForeignKey(DatasetService, on_delete=models.CASCADE, blank=True, null=True)
     engine = models.CharField(max_length=200,
                               choices=DatasetService.ENGINE_CHOICES,
                               default=DatasetService.CKAN)
@@ -415,8 +411,7 @@ class SpatialDatasetServiceSetting(TethysAppSetting):
     """
     GEOSERVER = SpatialDatasetService.GEOSERVER
 
-    spatial_dataset_service = models.ForeignKey(
-        SpatialDatasetService, on_delete=models.CASCADE, blank=True, null=True)
+    spatial_dataset_service = models.ForeignKey(SpatialDatasetService, on_delete=models.CASCADE, blank=True, null=True)
 
     engine = models.CharField(max_length=200,
                               choices=SpatialDatasetService.ENGINE_CHOICES,
@@ -477,8 +472,7 @@ class WebProcessingServiceSetting(TethysAppSetting):
 
     """
 
-    web_processing_service = models.ForeignKey(
-        WebProcessingService, on_delete=models.CASCADE, blank=True, null=True)
+    web_processing_service = models.ForeignKey(WebProcessingService, on_delete=models.CASCADE, blank=True, null=True)
 
     def clean(self):
         """
@@ -703,8 +697,7 @@ class PersistentStoreDatabaseSetting(TethysAppSetting):
         namespaced_ps_name = self.get_namespaced_persistent_store_name()
 
         # Drop db
-        drop_db_statement = 'DROP DATABASE IF EXISTS "{0}"'.format(
-            namespaced_ps_name)
+        drop_db_statement = 'DROP DATABASE IF EXISTS "{0}"'.format(namespaced_ps_name)
 
         try:
             drop_connection = engine.connect()
@@ -822,11 +815,9 @@ class PersistentStoreDatabaseSetting(TethysAppSetting):
             ))
             try:
                 if force_first_time:
-                    self.initializer_function(self.get_value(
-                        with_db=True, as_engine=True), True)
+                    self.initializer_function(self.get_value(with_db=True, as_engine=True), True)
                 else:
-                    self.initializer_function(self.get_value(
-                        with_db=True, as_engine=True), not self.initialized)
+                    self.initializer_function(self.get_value(with_db=True, as_engine=True), not self.initialized)
             except Exception as e:
                 raise PersistentStoreInitializerError(e)
 

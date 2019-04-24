@@ -32,8 +32,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
     def test_get_directories_in_tethys_templates_with_app_name(self):
         # Get the templates directories for the test_app and test_extension
         # Use the with_app_name argument, so that the app and extension names appear in the result
-        result = utilities.get_directories_in_tethys(
-            ('templates',), with_app_name=True)
+        result = utilities.get_directories_in_tethys(('templates',), with_app_name=True)
         self.assertGreaterEqual(len(result), 2)
         self.assertEqual(2, len(result[0]))
         self.assertEqual(2, len(result[1]))
@@ -53,8 +52,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
     @mock.patch('tethys_apps.utilities.SingletonHarvester')
     def test_get_directories_in_tethys_templates_extension_import_error(self, mock_harvester):
         # Mock the extension_modules variable with bad data, to throw an ImportError
-        mock_harvester().extension_modules = {
-            'foo_invalid_foo': 'tethysext.foo_invalid_foo'}
+        mock_harvester().extension_modules = {'foo_invalid_foo': 'tethysext.foo_invalid_foo'}
         mock_harvester().app_modules = {'test_app': 'tethysapp.test_app'}
 
         result = utilities.get_directories_in_tethys(('templates',))
@@ -150,8 +148,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         # Result should be None due to the exception
         result = utilities.get_active_app(request=mock_request)
         self.assertEqual(None, result)
-        mock_log_warning.assert_called_once_with(
-            'Could not locate app with root url "foo".')
+        mock_log_warning.assert_called_once_with('Could not locate app with root url "foo".')
 
     @mock.patch('tethys_apps.utilities.tethys_log.warning')
     @mock.patch('tethys_apps.models.TethysApp')
@@ -166,8 +163,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         # Result should be None due to the exception
         result = utilities.get_active_app(request=mock_request)
         self.assertEqual(None, result)
-        mock_log_warning.assert_called_once_with(
-            'Multiple apps found with root url "foo".')
+        mock_log_warning.assert_called_once_with('Multiple apps found with root url "foo".')
 
     @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
     @mock.patch('tethys_apps.models.TethysApp')
@@ -180,8 +176,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         mock_name = mock.MagicMock()
 
         # ObjectDoesNotExist should be thrown, and False returned
-        result = utilities.create_ps_database_setting(
-            app_package=mock_app_package, name=mock_name)
+        result = utilities.create_ps_database_setting(app_package=mock_app_package, name=mock_name)
 
         self.assertEqual(False, result)
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
@@ -201,14 +196,12 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         mock_name = mock.MagicMock()
 
         # PersistentStoreDatabaseSetting should exist, and False returned
-        result = utilities.create_ps_database_setting(
-            app_package=mock_app_package, name=mock_name)
+        result = utilities.create_ps_database_setting(app_package=mock_app_package, name=mock_name)
 
         self.assertEqual(False, result)
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertEqual(1, len(po_call_args))
-        self.assertIn('A PersistentStoreDatabaseSetting with name',
-                      po_call_args[0][0][0])
+        self.assertIn('A PersistentStoreDatabaseSetting with name', po_call_args[0][0][0])
         self.assertIn('already exists. Aborted.', po_call_args[0][0][0])
 
     @mock.patch('tethys_apps.utilities.print')
@@ -227,16 +220,14 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         mock_name = mock.MagicMock()
 
         # PersistentStoreDatabaseSetting should exist, and False returned
-        result = utilities.create_ps_database_setting(
-            app_package=mock_app_package, name=mock_name)
+        result = utilities.create_ps_database_setting(app_package=mock_app_package, name=mock_name)
 
         self.assertEqual(False, result)
         mock_ps_db_setting.assert_called()
         mock_ps_db_setting().save.assert_called()
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertEqual(1, len(po_call_args))
-        self.assertIn('The above error was encountered. Aborted.',
-                      po_call_args[0][0][0])
+        self.assertIn('The above error was encountered. Aborted.', po_call_args[0][0][0])
         rts_call_args = mock_print.call_args_list
         self.assertIn('foo exception', rts_call_args[0][0][0].args[0])
 
@@ -252,16 +243,14 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         mock_name = mock.MagicMock()
 
         # True should be returned
-        result = utilities.create_ps_database_setting(
-            app_package=mock_app_package, name=mock_name)
+        result = utilities.create_ps_database_setting(app_package=mock_app_package, name=mock_name)
 
         self.assertEqual(True, result)
         mock_ps_db_setting.assert_called()
         mock_ps_db_setting().save.assert_called()
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertEqual(1, len(po_call_args))
-        self.assertIn('PersistentStoreDatabaseSetting named',
-                      po_call_args[0][0][0])
+        self.assertIn('PersistentStoreDatabaseSetting named', po_call_args[0][0][0])
         self.assertIn('created successfully!', po_call_args[0][0][0])
 
     @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
@@ -275,8 +264,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         mock_name = mock.MagicMock()
 
         # An exception will be thrown and false returned
-        result = utilities.remove_ps_database_setting(
-            app_package=mock_app_package, name=mock_name)
+        result = utilities.remove_ps_database_setting(app_package=mock_app_package, name=mock_name)
 
         self.assertEqual(False, result)
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
@@ -297,14 +285,12 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         mock_name = mock.MagicMock()
 
         # An exception will be thrown and false returned
-        result = utilities.remove_ps_database_setting(
-            app_package=mock_app_package, name=mock_name)
+        result = utilities.remove_ps_database_setting(app_package=mock_app_package, name=mock_name)
 
         self.assertEqual(False, result)
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertEqual(1, len(po_call_args))
-        self.assertIn(
-            'An PersistentStoreDatabaseSetting with the name', po_call_args[0][0][0])
+        self.assertIn('An PersistentStoreDatabaseSetting with the name', po_call_args[0][0][0])
         self.assertIn(' for app ', po_call_args[0][0][0])
         self.assertIn('does not exist. Aborted.', po_call_args[0][0][0])
 
@@ -320,15 +306,13 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         mock_name = mock.MagicMock()
 
         # Delete will be called and True returned
-        result = utilities.remove_ps_database_setting(
-            app_package=mock_app_package, name=mock_name, force=True)
+        result = utilities.remove_ps_database_setting(app_package=mock_app_package, name=mock_name, force=True)
 
         self.assertEqual(True, result)
         mock_ps_db_setting.objects.get().delete.assert_called_once()
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertEqual(1, len(po_call_args))
-        self.assertIn(
-            'Successfully removed PersistentStoreDatabaseSetting with name', po_call_args[0][0][0])
+        self.assertIn('Successfully removed PersistentStoreDatabaseSetting with name', po_call_args[0][0][0])
 
     @mock.patch('tethys_apps.utilities.input')
     @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
@@ -345,15 +329,13 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         mock_name = mock.MagicMock()
 
         # Based on the raw_input, delete not called and None returned
-        result = utilities.remove_ps_database_setting(
-            app_package=mock_app_package, name=mock_name)
+        result = utilities.remove_ps_database_setting(app_package=mock_app_package, name=mock_name)
 
         self.assertEqual(True, result)
         mock_ps_db_setting.objects.get().delete.assert_called()
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertEqual(1, len(po_call_args))
-        self.assertIn(
-            'Successfully removed PersistentStoreDatabaseSetting with name', po_call_args[0][0][0])
+        self.assertIn('Successfully removed PersistentStoreDatabaseSetting with name', po_call_args[0][0][0])
 
     @mock.patch('tethys_apps.utilities.input')
     @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
@@ -370,15 +352,13 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         mock_name = mock.MagicMock()
 
         # Based on the raw_input, delete not called and None returned
-        result = utilities.remove_ps_database_setting(
-            app_package=mock_app_package, name=mock_name)
+        result = utilities.remove_ps_database_setting(app_package=mock_app_package, name=mock_name)
 
         self.assertEqual(None, result)
         mock_ps_db_setting.objects.get().delete.assert_not_called()
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertEqual(1, len(po_call_args))
-        self.assertEqual(
-            'Aborted. PersistentStoreDatabaseSetting not removed.', po_call_args[0][0][0])
+        self.assertEqual('Aborted. PersistentStoreDatabaseSetting not removed.', po_call_args[0][0][0])
 
     @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
     @mock.patch('tethys_services.models.SpatialDatasetService')
@@ -417,8 +397,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
                                                        setting_uid='456')
 
         self.assertEqual(False, result)
-        mock_service.objects.get.assert_called_once_with(
-            name='foo_spatial_service')
+        mock_service.objects.get.assert_called_once_with(name='foo_spatial_service')
         mock_app.objects.get.assert_called_once_with(package='foo_app')
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertEqual(1, len(po_call_args))
@@ -440,15 +419,12 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
                                                        setting_uid='456')
 
         self.assertEqual(False, result)
-        mock_service.objects.get.assert_called_once_with(
-            name='foo_spatial_service')
+        mock_service.objects.get.assert_called_once_with(name='foo_spatial_service')
         mock_app.objects.get.assert_called_once_with(package='foo_app')
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertEqual(1, len(po_call_args))
-        self.assertIn(
-            'The setting_type you specified ("foo_invalid") does not exist.', po_call_args[0][0][0])
-        self.assertIn(
-            'Choose from: "ps_database|ps_connection|ds_spatial"', po_call_args[0][0][0])
+        self.assertIn('The setting_type you specified ("foo_invalid") does not exist.', po_call_args[0][0][0])
+        self.assertIn('Choose from: "ps_database|ps_connection|ds_spatial"', po_call_args[0][0][0])
 
     @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
     @mock.patch('tethys_sdk.app_settings.SpatialDatasetServiceSetting')
@@ -470,8 +446,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
                                                        setting_uid='foo_456')
 
         self.assertEqual(True, result)
-        mock_service.objects.get.assert_called_once_with(
-            name='foo_spatial_service')
+        mock_service.objects.get.assert_called_once_with(name='foo_spatial_service')
         mock_app.objects.get.assert_called_once_with(package='foo_app')
         mock_setting.objects.get.assert_called()
         mock_setting.objects.get().save.assert_called_once()
@@ -500,8 +475,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
                                                        setting_uid='456')
 
         self.assertEqual(False, result)
-        mock_service.objects.get.assert_called_once_with(
-            name='foo_spatial_service')
+        mock_service.objects.get.assert_called_once_with(name='foo_spatial_service')
         mock_app.objects.get.assert_called_once_with(package='foo_app')
         mock_setting.objects.get.assert_called()
         po_call_args = mock_pretty_output().__enter__().write.call_args_list

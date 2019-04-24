@@ -72,8 +72,7 @@ class SingletonHarvester:
             tethys_apps = dict()
             for _, modname, ispkg in pkgutil.iter_modules(tethysapp.__path__):
                 if ispkg:
-                    tethys_apps[modname] = 'tethysapp.{}'.format(
-                        modname)
+                    tethys_apps[modname] = 'tethysapp.{}'.format(modname)
 
             # Harvest App Instances
             self._harvest_app_instances(tethys_apps)
@@ -152,8 +151,7 @@ class SingletonHarvester:
 
             try:
                 # Import the "ext" module from the extension package
-                ext_module = __import__(
-                    extension_package + ".ext", fromlist=[''])
+                ext_module = __import__(extension_package + ".ext", fromlist=[''])
 
                 # Retrieve the members of the ext_module and iterate through
                 # them to find the the class that inherits from TethysExtensionBase.
@@ -166,16 +164,14 @@ class SingletonHarvester:
 
                             # Instantiate app and validate
                             ext_instance = ExtensionClass()
-                            validated_ext_instance = self._validate_extension(
-                                ext_instance)
+                            validated_ext_instance = self._validate_extension(ext_instance)
 
                             # sync app with Tethys db
                             ext_instance.sync_with_tethys_db()
 
                             # compile valid apps
                             if validated_ext_instance:
-                                valid_ext_instances.append(
-                                    validated_ext_instance)
+                                valid_ext_instances.append(validated_ext_instance)
                                 valid_extension_modules[extension_name] = extension_package
 
                                 # Notify user that the app has been loaded
@@ -232,8 +228,7 @@ class SingletonHarvester:
 
                             # Instantiate app and validate
                             app_instance = AppClass()
-                            validated_app_instance = self._validate_app(
-                                app_instance)
+                            validated_app_instance = self._validate_app(app_instance)
 
                             # sync app with Tethys db
                             app_instance.sync_with_tethys_db()
@@ -256,8 +251,7 @@ class SingletonHarvester:
                             # compile valid apps
                             if validated_app_instance:
                                 valid_app_modules[app_name] = app_package
-                                valid_app_instance_list.append(
-                                    validated_app_instance)
+                                valid_app_instance_list.append(validated_app_instance)
 
                                 # Notify user that the app has been loaded
                                 loaded_apps.append(app_name)

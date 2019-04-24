@@ -30,8 +30,7 @@ class TethysAppsHelpersTests(unittest.TestCase):
     @mock.patch('tethys_apps.helpers.SingletonHarvester')
     def test_get_installed_tethys_extensions_error(self, mock_harvester):
         # Mock the extension_modules variable with bad data
-        mock_harvester().extension_modules = {
-            'foo_invalid_foo': 'tethysext.foo_invalid_foo'}
+        mock_harvester().extension_modules = {'foo_invalid_foo': 'tethysext.foo_invalid_foo'}
 
         # Get a list of installed extensions
         result = helpers.get_installed_tethys_extensions()

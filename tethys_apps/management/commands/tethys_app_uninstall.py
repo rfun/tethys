@@ -24,8 +24,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('app_or_extension', nargs='+', type=str)
-        parser.add_argument(
-            '-e', '--extension', dest='is_extension', default=False, action='store_true')
+        parser.add_argument('-e', '--extension', dest='is_extension', default=False, action='store_true')
         parser.add_argument('-f', '--force', dest='is_forced',
                             default=False, action='store_true')
 
@@ -39,8 +38,7 @@ class Command(BaseCommand):
         item_name = options['app_or_extension'][0]
 
         # Check for app files installed
-        installed_items = get_installed_tethys_extensions(
-        ) if options['is_extension'] else get_installed_tethys_apps()
+        installed_items = get_installed_tethys_extensions() if options['is_extension'] else get_installed_tethys_apps()
 
         if PREFIX in item_name:
             prefix_length = len(PREFIX) + 1
@@ -96,22 +94,18 @@ class Command(BaseCommand):
                 os.remove(installed_items[item_name])
 
         # Uninstall using pip
-        process = ['pip', 'uninstall', '-y',
-                   '{0}-{1}'.format(PREFIX, item_name)]
+        process = ['pip', 'uninstall', '-y', '{0}-{1}'.format(PREFIX, item_name)]
 
         try:
-            subprocess.Popen(process, stderr=subprocess.STDOUT,
-                             stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(process, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
         except KeyboardInterrupt:
             pass
 
         # Remove the namespace package file if applicable.
         for site_package in site.getsitepackages():
             try:
-                os.remove(os.path.join(
-                    site_package, "{}-{}-nspkg.pth".format(PREFIX, item_name.replace('_', '-'))))
+                os.remove(os.path.join(site_package, "{}-{}-nspkg.pth".format(PREFIX, item_name.replace('_', '-'))))
             except Exception:
                 continue
 
-        self.stdout.write('{} "{}" successfully uninstalled.'.format(
-            app_or_extension, item_with_prefix))
+        self.stdout.write('{} "{}" successfully uninstalled.'.format(app_or_extension, item_with_prefix))

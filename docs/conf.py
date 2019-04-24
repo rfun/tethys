@@ -87,8 +87,7 @@ django.setup()
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
-              'sphinx.ext.extlinks', 'sphinx.ext.todo']
+extensions = ['sphinx.ext.autodoc', 'sphinxcontrib.napoleon', 'sphinx.ext.extlinks', 'sphinx.ext.todo']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -118,8 +117,7 @@ release = pbr.version.VersionInfo('tethys_platform').version_string_with_vcs()
 # A string of reStructuredText that will be included at the end of every source
 # file that is read. This is the right place to add substitutions that should be
 # available in every file.
-branch = pbr.git._run_git_command(
-    ['rev-parse', '--abbrev-ref', 'HEAD'], pbr.git._get_git_directory())
+branch = pbr.git._run_git_command(['rev-parse', '--abbrev-ref', 'HEAD'], pbr.git._get_git_directory())
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
     # Hack to try to get the branch name if possible, otherwise assume 'release'
@@ -273,8 +271,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    ('index', 'TethysPlatform.tex', u'Tethys Platform Documentation',
-     u'Nathan Swain', 'manual'),
+  ('index', 'TethysPlatform.tex', u'Tethys Platform Documentation',
+   u'Nathan Swain', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -323,9 +321,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'TethysPlatform', u'Tethys Platform Documentation',
-     u'Nathan Swain', 'TethysPlatform', 'One line description of project.',
-     'Miscellaneous'),
+  ('index', 'TethysPlatform', u'Tethys Platform Documentation',
+   u'Nathan Swain', 'TethysPlatform', 'One line description of project.',
+   'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.

@@ -27,15 +27,12 @@ class TethysFunctionExtractor:
                 module_path, function_name = self.path.rsplit('.', 1)
 
                 # Pre-process handler path
-                full_module_path = '.'.join(
-                    (self.prefix, module_path)) if self.prefix else module_path
+                full_module_path = '.'.join((self.prefix, module_path)) if self.prefix else module_path
 
                 # Import module
-                module = __import__(full_module_path, fromlist=[
-                                    str(function_name)])
+                module = __import__(full_module_path, fromlist=[str(function_name)])
 
             except (ValueError, ImportError) as e:
-                print(e)
                 self._valid = False
                 if self._throw:
                     raise e

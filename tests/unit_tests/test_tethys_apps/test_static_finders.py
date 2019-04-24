@@ -5,10 +5,8 @@ from tethys_apps.static_finders import TethysStaticFinder
 
 class TestTethysStaticFinder(unittest.TestCase):
     def setUp(self):
-        self.src_dir = os.path.dirname(os.path.dirname(
-            os.path.dirname(os.path.dirname(__file__))))
-        self.root = os.path.join(
-            self.src_dir, 'tests', 'apps', 'tethysapp-test_app', 'tethysapp', 'test_app', 'public')
+        self.src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        self.root = os.path.join(self.src_dir, 'tests', 'apps', 'tethysapp-test_app', 'tethysapp', 'test_app', 'public')
 
     def tearDown(self):
         pass

@@ -32,8 +32,7 @@ class TestHandoffManager(unittest.TestCase):
         app.handoff_handlers.return_value = handlers
 
         # mock _get_valid_handlers
-        self.hm._get_valid_handlers = mock.MagicMock(
-            return_value=['valid_handler'])
+        self.hm._get_valid_handlers = mock.MagicMock(return_value=['valid_handler'])
         result = tethys_handoff.HandoffManager(app=app)
 
         # Check result
@@ -51,11 +50,9 @@ class TestHandoffManager(unittest.TestCase):
         app.handoff_handlers.return_value = [handlers]
 
         # mock _get_valid_handlers
-        self.hm._get_valid_handlers = mock.MagicMock(
-            return_value=['valid_handler'])
+        self.hm._get_valid_handlers = mock.MagicMock(return_value=['valid_handler'])
         result = tethys_handoff.HandoffManager(app=app).__repr__()
-        check_string = "<Handoff Manager: app={}, handlers=['{}']>".format(
-            app, handlers.name)
+        check_string = "<Handoff Manager: app={}, handlers=['{}']>".format(app, handlers.name)
 
         self.assertEqual(check_string, result)
 
@@ -65,11 +62,9 @@ class TestHandoffManager(unittest.TestCase):
 
         # Mock _get_handoff_manager_for_app
         manager = mock.MagicMock(valid_handlers='test_handlers')
-        self.hm._get_handoff_manager_for_app = mock.MagicMock(
-            return_value=manager)
+        self.hm._get_handoff_manager_for_app = mock.MagicMock(return_value=manager)
 
-        result = tethys_handoff.HandoffManager(
-            app=app).get_capabilities(app_name='test_app')
+        result = tethys_handoff.HandoffManager(app=app).get_capabilities(app_name='test_app')
 
         # Check Result
         self.assertEqual('test_handlers', result)
@@ -85,11 +80,9 @@ class TestHandoffManager(unittest.TestCase):
         # Do not write out handler2
         handler2.internal = True
         manager = mock.MagicMock(valid_handlers=[handler1, handler2])
-        self.hm._get_handoff_manager_for_app = mock.MagicMock(
-            return_value=manager)
+        self.hm._get_handoff_manager_for_app = mock.MagicMock(return_value=manager)
 
-        result = tethys_handoff.HandoffManager(app=app).get_capabilities(
-            app_name='test_app', external_only=True)
+        result = tethys_handoff.HandoffManager(app=app).get_capabilities(app_name='test_app', external_only=True)
 
         # Check Result
         self.assertEqual([handler1], result)
@@ -103,11 +96,9 @@ class TestHandoffManager(unittest.TestCase):
 
         handler1 = mock.MagicMock(name='test_name')
         manager = mock.MagicMock(valid_handlers=[handler1])
-        self.hm._get_handoff_manager_for_app = mock.MagicMock(
-            return_value=manager)
+        self.hm._get_handoff_manager_for_app = mock.MagicMock(return_value=manager)
 
-        tethys_handoff.HandoffManager(app=app).get_capabilities(
-            app_name='test_app', jsonify=True)
+        tethys_handoff.HandoffManager(app=app).get_capabilities(app_name='test_app', jsonify=True)
 
         # Check Result
         rts_call_args = mock_json.dumps.call_args_list
@@ -120,11 +111,9 @@ class TestHandoffManager(unittest.TestCase):
         handler1 = mock.MagicMock()
         handler1.name = 'handler1'
         manager = mock.MagicMock(valid_handlers=[handler1])
-        self.hm._get_handoff_manager_for_app = mock.MagicMock(
-            return_value=manager)
+        self.hm._get_handoff_manager_for_app = mock.MagicMock(return_value=manager)
 
-        result = tethys_handoff.HandoffManager(
-            app=app).get_handler(handler_name='handler1')
+        result = tethys_handoff.HandoffManager(app=app).get_handler(handler_name='handler1')
 
         self.assertEqual('handler1', result.name)
 
@@ -142,11 +131,9 @@ class TestHandoffManager(unittest.TestCase):
         handler1().internal = False
         handler1().side_effect = TypeError('test message')
         manager = mock.MagicMock(get_handler=handler1)
-        self.hm._get_handoff_manager_for_app = mock.MagicMock(
-            return_value=manager)
+        self.hm._get_handoff_manager_for_app = mock.MagicMock(return_value=manager)
 
-        tethys_handoff.HandoffManager(app=app).handoff(
-            request=request, handler_name='test_handler')
+        tethys_handoff.HandoffManager(app=app).handoff(request=request, handler_name='test_handler')
         rts_call_args = mock_hrbr.call_args_list
 
         # Check result
@@ -171,11 +158,9 @@ class TestHandoffManager(unittest.TestCase):
         mapp = mock.MagicMock()
         mapp.name = 'test manager name'
         manager = mock.MagicMock(get_handler=handler1, app=mapp)
-        self.hm._get_handoff_manager_for_app = mock.MagicMock(
-            return_value=manager)
+        self.hm._get_handoff_manager_for_app = mock.MagicMock(return_value=manager)
 
-        tethys_handoff.HandoffManager(app=app).handoff(
-            request=request, handler_name='test_handler')
+        tethys_handoff.HandoffManager(app=app).handoff(request=request, handler_name='test_handler')
         rts_call_args = mock_hrbr.call_args_list
 
         # Check result
@@ -186,16 +171,15 @@ class TestHandoffManager(unittest.TestCase):
     @mock.patch('tethys_apps.base.handoff.print')
     def test_get_valid_handlers(self, mock_print):
         app = mock.MagicMock(package='test_app')
-        # Mock handoff_handlers
+
         # Mock handoff_handlers
         handler1 = mock.MagicMock(handler='controllers:home', valid=True)
-
         # Cover Import Error Case
         handler2 = mock.MagicMock(handler='controllers1:home1', valid=False)
 
         app.handoff_handlers.return_value = [handler1, handler2]
-        # mock _get_valid_handlers
 
+        # mock _get_valid_handlers
         result = tethys_handoff.HandoffManager(app=app)._get_valid_handlers()
         # Check result
         self.assertEqual('controllers:home', result[0].handler)
@@ -213,8 +197,7 @@ class TestHandoffHandler(unittest.TestCase):
         pass
 
     def test_init(self):
-        result = tethys_handoff.HandoffHandler(
-            name='test_name', handler='test_app.handoff.csv', internal=True)
+        result = tethys_handoff.HandoffHandler(name='test_name', handler='test_app.handoff.csv', internal=True)
 
         # Check Result
         self.assertEqual('test_name', result.name)
@@ -256,8 +239,7 @@ class TestGetHandoffManagerFroApp(unittest.TestCase):
 
     def test_not_app_name(self):
         app = mock.MagicMock()
-        result = tethys_handoff.HandoffManager(
-            app=app)._get_handoff_manager_for_app(app_name=None)
+        result = tethys_handoff.HandoffManager(app=app)._get_handoff_manager_for_app(app_name=None)
 
         self.assertEqual(app, result.app)
 
@@ -266,8 +248,7 @@ class TestGetHandoffManagerFroApp(unittest.TestCase):
         app = mock.MagicMock(package='test_app')
         app.get_handoff_manager.return_value = 'test_manager'
         mock_ta.harvester.SingletonHarvester().apps = [app]
-        result = tethys_handoff.HandoffManager(
-            app=app)._get_handoff_manager_for_app(app_name='test_app')
+        result = tethys_handoff.HandoffManager(app=app)._get_handoff_manager_for_app(app_name='test_app')
 
         # Check result
         self.assertEqual('test_manager', result)
@@ -276,8 +257,7 @@ class TestGetHandoffManagerFroApp(unittest.TestCase):
 class TestTestAppHandoff(TethysTestCase):
     def set_up(self):
         self.c = self.get_test_client()
-        self.user = self.create_test_user(
-            username="joe", password="secret", email="joe@some_site.com")
+        self.user = self.create_test_user(username="joe", password="secret", email="joe@some_site.com")
         self.c.force_login(self.user)
 
     def tear_down(self):

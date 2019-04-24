@@ -57,16 +57,14 @@ def get_directories_in_tethys(directory_names, with_app_name=False):
         try:
             app_module = __import__(app_module, fromlist=[''])
             potential_dirs.append(app_module.__path__[0])
-        except (ImportError, AttributeError, IndexError) as e:
-            print(e)
+        except (ImportError, AttributeError, IndexError):
             pass
 
     for _, extension_module in harvester.extension_modules.items():
         try:
             extension_module = __import__(extension_module, fromlist=[''])
             potential_dirs.append(extension_module.__path__[0])
-        except (ImportError, AttributeError, IndexError) as e:
-            print(e)
+        except (ImportError, AttributeError, IndexError):
             pass
 
     # Check each directory combination
@@ -81,8 +79,7 @@ def get_directories_in_tethys(directory_names, with_app_name=False):
                     if not with_app_name:
                         match_dirs.append(match_dir)
                     else:
-                        match_dirs.append(
-                            (os.path.basename(potential_dir), match_dir))
+                        match_dirs.append((os.path.basename(potential_dir), match_dir))
 
     return match_dirs
 
@@ -115,11 +112,9 @@ def get_active_app(request=None, url=None):
                 # Get the app from the database
                 app = TethysApp.objects.get(root_url=app_root_url)
             except ObjectDoesNotExist:
-                tethys_log.warning(
-                    'Could not locate app with root url "{0}".'.format(app_root_url))
+                tethys_log.warning('Could not locate app with root url "{0}".'.format(app_root_url))
             except MultipleObjectsReturned:
-                tethys_log.warning(
-                    'Multiple apps found with root url "{0}".'.format(app_root_url))
+                tethys_log.warning('Multiple apps found with root url "{0}".'.format(app_root_url))
     return app
 
 
@@ -133,16 +128,14 @@ def create_ps_database_setting(app_package, name, description='', required=False
         app = TethysApp.objects.get(package=app_package)
     except ObjectDoesNotExist:
         with pretty_output(FG_RED) as p:
-            p.write(
-                'A Tethys App with the name "{}" does not exist. Aborted.'.format(app_package))
+            p.write('A Tethys App with the name "{}" does not exist. Aborted.'.format(app_package))
         return False
 
     try:
         setting = PersistentStoreDatabaseSetting.objects.get(name=name)
         if setting:
             with pretty_output(FG_RED) as p:
-                p.write(
-                    'A PersistentStoreDatabaseSetting with name "{}" already exists. Aborted.'.format(name))
+                p.write('A PersistentStoreDatabaseSetting with name "{}" already exists. Aborted.'.format(name))
             return False
     except ObjectDoesNotExist:
         pass
@@ -179,13 +172,11 @@ def remove_ps_database_setting(app_package, name, force=False):
         app = TethysApp.objects.get(package=app_package)
     except ObjectDoesNotExist:
         with pretty_output(FG_RED) as p:
-            p.write(
-                'A Tethys App with the name "{}" does not exist. Aborted.'.format(app_package))
+            p.write('A Tethys App with the name "{}" does not exist. Aborted.'.format(app_package))
         return False
 
     try:
-        setting = PersistentStoreDatabaseSetting.objects.get(
-            tethys_app=app, name=name)
+        setting = PersistentStoreDatabaseSetting.objects.get(tethys_app=app, name=name)
     except ObjectDoesNotExist:
         with pretty_output(FG_RED) as p:
             p.write('An PersistentStoreDatabaseSetting with the name "{}" for app "{}" does not exist. Aborted.'
@@ -201,8 +192,7 @@ def remove_ps_database_setting(app_package, name, force=False):
         if proceed in ['y', 'Y']:
             setting.delete()
             with pretty_output(FG_GREEN) as p:
-                p.write(
-                    'Successfully removed PersistentStoreDatabaseSetting with name "{0}"!'.format(name))
+                p.write('Successfully removed PersistentStoreDatabaseSetting with name "{0}"!'.format(name))
             return True
         else:
             with pretty_output(FG_RED) as p:
@@ -210,8 +200,7 @@ def remove_ps_database_setting(app_package, name, force=False):
     else:
         setting.delete()
         with pretty_output(FG_GREEN) as p:
-            p.write(
-                'Successfully removed PersistentStoreDatabaseSetting with name "{0}"!'.format(name))
+            p.write('Successfully removed PersistentStoreDatabaseSetting with name "{0}"!'.format(name))
         return True
 
 
@@ -277,16 +266,14 @@ def link_service_to_app_setting(service_type, service_uid, app_package, setting_
             service = service_model.objects.get(name=service_uid)
     except ObjectDoesNotExist:
         with pretty_output(FG_RED) as p:
-            p.write(
-                'A {0} with ID/Name "{1}" does not exist.'.format(str(service_model), service_uid))
+            p.write('A {0} with ID/Name "{1}" does not exist.'.format(str(service_model), service_uid))
         return False
 
     try:
         app = TethysApp.objects.get(package=app_package)
     except ObjectDoesNotExist:
         with pretty_output(FG_RED) as p:
-            p.write(
-                'A Tethys App with the name "{}" does not exist. Aborted.'.format(app_package))
+            p.write('A Tethys App with the name "{}" does not exist. Aborted.'.format(app_package))
         return False
 
     try:

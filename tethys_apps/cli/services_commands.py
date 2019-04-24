@@ -40,20 +40,16 @@ def services_create_persistent_command(args):
         new_persistent_service.save()
 
         with pretty_output(FG_GREEN) as p:
-            p.write(
-                'Successfully created new Persistent Store Service!')
+            p.write('Successfully created new Persistent Store Service!')
     except AttributeError:
         with pretty_output(FG_RED) as p:
-            p.write(
-                'Missing Input Parameters. Please check your input.')
+            p.write('Missing Input Parameters. Please check your input.')
     except IndexError:
         with pretty_output(FG_RED) as p:
-            p.write(
-                'The connection argument (-c) must be of the form "<username>:<password>@<host>:<port>".')
+            p.write('The connection argument (-c) must be of the form "<username>:<password>@<host>:<port>".')
     except IntegrityError:
         with pretty_output(FG_RED) as p:
-            p.write(
-                'Persistent Store Service with name "{0}" already exists. Command aborted.'.format(name))
+            p.write('Persistent Store Service with name "{0}" already exists. Command aborted.'.format(name))
 
 
 def services_create_spatial_command(args):
@@ -96,12 +92,10 @@ def services_create_spatial_command(args):
                     '"<username>:<password>@<protocol>//<host>:<port>".')
     except FormatError:
         with pretty_output(FG_RED) as p:
-            p.write('The public_endpoint argument (-p) must be of the form '
-                    '"<protocol>//<host>:<port>".')
+            p.write('The public_endpoint argument (-p) must be of the form "<protocol>//<host>:<port>".')
     except IntegrityError:
         with pretty_output(FG_RED) as p:
-            p.write(
-                'Spatial Dataset Service with name "{0}" already exists. Command aborted.'.format(name))
+            p.write('Spatial Dataset Service with name "{0}" already exists. Command aborted.'.format(name))
 
 
 def services_create_dataset_command(args):
@@ -147,8 +141,7 @@ def services_create_dataset_command(args):
                     '"<protocol>//<host>:<port>".')
     except IntegrityError:
         with pretty_output(FG_RED) as p:
-            p.write(
-                'Dataset Service with name "{0}" already exists. Command aborted.'.format(name))
+            p.write('Dataset Service with name "{0}" already exists. Command aborted.'.format(name))
 
 
 def services_create_wps_command(args):
@@ -184,8 +177,7 @@ def services_create_wps_command(args):
                     '"<username>:<password>@<protocol>//<host>:<port>".')
     except IntegrityError:
         with pretty_output(FG_RED) as p:
-            p.write(
-                'Web Processing Service with name "{0}" already exists. Command aborted.'.format(name))
+            p.write('Web Processing Service with name "{0}" already exists. Command aborted.'.format(name))
 
 
 def remove_service(serviceType, args):
@@ -201,9 +193,7 @@ def remove_service(serviceType, args):
     }
 
     service = services.get(serviceType)
-
     serviceLabel = str(service)
-
     service_id = None
 
     try:
@@ -214,14 +204,12 @@ def remove_service(serviceType, args):
             service_id = int(service_id)
             service = service.objects.get(pk=service_id)
         except ValueError:
-            service = service.objects.get(
-                name=service_id)
+            service = service.objects.get(name=service_id)
 
         if force:
             service.delete()
             with pretty_output(FG_GREEN) as p:
-                p.write('Successfully removed {0} Service {1}!'.format(
-                    serviceLabel, service_id))
+                p.write('Successfully removed {0} Service {1}!'.format(serviceLabel, service_id))
             exit(0)
         else:
             proceed = input(
@@ -232,18 +220,15 @@ def remove_service(serviceType, args):
             if proceed in ['y', 'Y']:
                 service.delete()
                 with pretty_output(FG_GREEN) as p:
-                    p.write('Successfully removed {0} Service {1}!'.format(
-                        serviceLabel, service_id))
+                    p.write('Successfully removed {0} Service {1}!'.format(serviceLabel, service_id))
                 exit(0)
             else:
                 with pretty_output(FG_RED) as p:
-                    p.write(
-                        'Aborted. {0} Service not removed.'.format(serviceLabel))
+                    p.write('Aborted. {0} Service not removed.'.format(serviceLabel))
                 exit(0)
     except ObjectDoesNotExist:
         with pretty_output(FG_RED) as p:
-            p.write(
-                'A {0} Service with ID/Name "{1}" does not exist.'.format(serviceLabel, service_id))
+            p.write('A {0} Service with ID/Name "{1}" does not exist.'.format(serviceLabel, service_id))
         exit(0)
 
 
@@ -289,8 +274,7 @@ def services_list_command(args):
         list_wps = True
 
     if list_persistent:
-        persistent_entries = PersistentStoreService.objects.order_by(
-            'id').all()
+        persistent_entries = PersistentStoreService.objects.order_by('id').all()
         if len(persistent_entries) > 0:
             with pretty_output(BOLD) as p:
                 p.write('\nPersistent Store Services:')
@@ -299,8 +283,7 @@ def services_list_command(args):
                 model_dict = model_to_dict(entry)
                 if is_first_entry:
                     with pretty_output(BOLD) as p:
-                        p.write('{0: <3}{1: <50}{2: <25}{3: <6}'.format(
-                            'ID', 'Name', 'Host', 'Port'))
+                        p.write('{0: <3}{1: <50}{2: <25}{3: <6}'.format('ID', 'Name', 'Host', 'Port'))
                     is_first_entry = False
                 print('{0: <3}{1: <50}{2: <25}{3: <6}'.format(model_dict['id'], model_dict['name'],
                                                               model_dict['host'], model_dict['port']))

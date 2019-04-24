@@ -43,8 +43,7 @@ class DatasetServiceSettingInline(TethysAppSettingInline):
 
 class SpatialDatasetServiceSettingInline(TethysAppSettingInline):
     readonly_fields = ('name', 'description', 'required', 'engine')
-    fields = ('name', 'description',
-              'spatial_dataset_service', 'engine', 'required')
+    fields = ('name', 'description', 'spatial_dataset_service', 'engine', 'required')
     model = SpatialDatasetServiceSetting
 
 
@@ -63,10 +62,8 @@ class PersistentStoreConnectionSettingInline(TethysAppSettingInline):
 
 
 class PersistentStoreDatabaseSettingInline(TethysAppSettingInline):
-    readonly_fields = ('name', 'description', 'required',
-                       'spatial', 'initialized')
-    fields = ('name', 'description', 'spatial', 'initialized',
-              'persistent_store_service', 'required')
+    readonly_fields = ('name', 'description', 'required', 'spatial', 'initialized')
+    fields = ('name', 'description', 'spatial', 'initialized', 'persistent_store_service', 'required')
     model = PersistentStoreDatabaseSetting
 
     def get_queryset(self, request):
@@ -76,8 +73,7 @@ class PersistentStoreDatabaseSettingInline(TethysAppSettingInline):
 
 class TethysAppAdmin(GuardedModelAdmin):
     readonly_fields = ('package',)
-    fields = ('package', 'name', 'description', 'tags', 'enabled',
-              'show_in_apps_library', 'enable_feedback')
+    fields = ('package', 'name', 'description', 'tags', 'enabled', 'show_in_apps_library', 'enable_feedback')
     inlines = [CustomSettingInline,
                PersistentStoreConnectionSettingInline,
                PersistentStoreDatabaseSettingInline,

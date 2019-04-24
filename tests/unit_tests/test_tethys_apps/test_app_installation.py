@@ -12,11 +12,9 @@ else:
 
 class TestAppInstallation(unittest.TestCase):
     def setUp(self):
-        self.src_dir = os.path.dirname(os.path.dirname(
-            os.path.dirname(os.path.dirname(__file__))))
-        self.root = os.path.join(
-            self.src_dir, 'tests', 'apps', 'tethysapp-test_app',
-            'tethysapp',  'test_app', 'public')
+        self.src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        self.root = os.path.join(self.src_dir, 'tests', 'apps', 'tethysapp-test_app',
+                                 'tethysapp',  'test_app', 'public')
 
     def tearDown(self):
         pass
@@ -44,8 +42,7 @@ class TestAppInstallation(unittest.TestCase):
     @mock.patch('tethys_apps.app_installation.install')
     def test__run_install(self, mock_install):
         # mock the self input
-        mock_self = mock.MagicMock(
-            app_package='tethys_apps', app_package_dir='/test_app/', dependencies=['foo'])
+        mock_self = mock.MagicMock(app_package='tethys_apps', app_package_dir='/test_app/', dependencies=['foo'])
 
         # call the method for testing
         tethys_app_installation._run_install(self=mock_self)
@@ -58,8 +55,7 @@ class TestAppInstallation(unittest.TestCase):
     def test__run_develop(self, mock_callable, mock_develop):
 
         # mock the self input
-        mock_self = mock.MagicMock(
-            app_package='tethys_apps', app_package_dir='/test_app/', dependencies=['foo'])
+        mock_self = mock.MagicMock(app_package='tethys_apps', app_package_dir='/test_app/', dependencies=['foo'])
 
         # call the method for testing
         tethys_app_installation._run_develop(self=mock_self)
@@ -75,8 +71,7 @@ class TestAppInstallation(unittest.TestCase):
         app_package_dir = '/test_app/'
         dependencies = 'foo'
 
-        ret = tethys_app_installation.custom_install_command(
-            app_package, app_package_dir, dependencies)
+        ret = tethys_app_installation.custom_install_command(app_package, app_package_dir, dependencies)
 
         self.assertEquals('tethys_apps', ret.app_package)
         self.assertEquals('/test_app/', ret.app_package_dir)
@@ -88,8 +83,7 @@ class TestAppInstallation(unittest.TestCase):
         app_package_dir = '/test_app/'
         dependencies = 'foo'
 
-        ret = tethys_app_installation.custom_develop_command(
-            app_package, app_package_dir, dependencies)
+        ret = tethys_app_installation.custom_develop_command(app_package, app_package_dir, dependencies)
 
         self.assertEquals('tethys_apps1', ret.app_package)
         self.assertEquals('/test_app/', ret.app_package_dir)

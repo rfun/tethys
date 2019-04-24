@@ -59,12 +59,10 @@ class HandoffManager:
             handlers = manager.valid_handlers
 
             if external_only:
-                handlers = [
-                    handler for handler in handlers if not handler.internal]
+                handlers = [handler for handler in handlers if not handler.internal]
 
             if jsonify:
-                handlers = json.dumps(
-                    [handler.__dict__ for handler in handlers])
+                handlers = json.dumps([handler.__dict__ for handler in handlers])
 
             return handlers
 
@@ -115,8 +113,7 @@ class HandoffManager:
                     urlish = handler(request, **kwargs)
                     return redirect(urlish)
                 except TypeError as e:
-                    error['message'] = "HTTP 400 Bad Request: {0}. ".format(
-                        str(e))
+                    error['message'] = "HTTP 400 Bad Request: {0}. ".format(str(e))
                     return HttpResponseBadRequest(json.dumps(error), content_type='application/javascript')
 
         error['message'] = "HTTP 400 Bad Request: No handoff handler '{0}' for app '{1}' found.".\
@@ -149,8 +146,7 @@ class HandoffManager:
         """
         Returns a list of valid HandoffHandler objects.
         """
-        valid_handlers = [
-            handler for handler in self.handlers if handler.valid]
+        valid_handlers = [handler for handler in self.handlers if handler.valid]
 
         # Code for backwards compatibility TODO: delete this code block when deprecated
         valid_handlers = []
@@ -168,13 +164,11 @@ class HandoffManager:
                     module_path, function_name = handler_str.split(':')
 
                     # Pre-process handler path
-                    full_module_path = '.'.join(
-                        ('tethys_apps.tethysapp', self.app.package, module_path))
+                    full_module_path = '.'.join(('tethys_apps.tethysapp', self.app.package, module_path))
 
                     try:
                         # Import module
-                        module = __import__(
-                            full_module_path, fromlist=[function_name])
+                        module = __import__(full_module_path, fromlist=[function_name])
                     except ImportError:
                         pass
                     else:
@@ -209,8 +203,7 @@ class HandoffHandler(TethysFunctionExtractor):
 
         # make each instance callable
         self.__class__ = type(self.__class__.__name__, (self.__class__,), {})
-        self.__class__.__call__ = lambda this, * \
-            args, **kwargs: this.function(*args, **kwargs)
+        self.__class__.__call__ = lambda this, *args, **kwargs: this.function(*args, **kwargs)
 
     def __repr__(self):
         """
