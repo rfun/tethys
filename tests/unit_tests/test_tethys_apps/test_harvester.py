@@ -1,6 +1,5 @@
 import io
 import unittest
-import logging
 from unittest import mock
 
 from django.db.utils import ProgrammingError
