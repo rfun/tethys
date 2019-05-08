@@ -85,14 +85,6 @@ class Command(BaseCommand):
         if db_found and db_app:
             db_app.delete()
 
-        if module_found and not options['is_extension']:
-            try:
-                # Remove directory
-                shutil.rmtree(installed_items[item_name])
-            except OSError:
-                # Remove symbolic link
-                os.remove(installed_items[item_name])
-
         # Uninstall using pip
         process = ['pip', 'uninstall', '-y', '{0}-{1}'.format(PREFIX, item_name)]
 

@@ -70,8 +70,9 @@ def test_command(args):
     elif args.gui:
         primary_process.append(os.path.join(tests_path, 'gui_tests'))
 
-    # primary_process.append('--keepdb')
-    # primary_process.append('--failfast')
+    primary_process.append('--keepdb')
+    primary_process.append('--failfast')
+
     test_status = run_process(primary_process)
 
     if args.coverage:

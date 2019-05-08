@@ -385,10 +385,13 @@ def tethys_command():
     # Init Commands
 
     application_init_parser = subparsers.add_parser('install', help='Install and Initialize Applications')
-    group = application_init_parser.add_mutually_exclusive_group()
-    group.add_argument('-f', '--file', type=str, help='The path to the Init Config file. ')
-    group.add_argument('-p', '--portal-file', type=str, help='The path to the Portal initialization config file')
-    group.add_argument('--force-services', help='Force Services.yml file over portal.yml file', action="store_true")
+    application_init_parser.add_argument('-f', '--file', type=str, help='The path to the Init Config file. ')
+    application_init_parser.add_argument('-p', '--portal-file', type=str,
+                                         help='The path to the Portal initialization config file')
+    application_init_parser.add_argument('-s', '--services-file', type=str,
+                                         help='The path to the Services.yml config file')
+    application_init_parser.add_argument(
+        '--force-services', help='Force Services.yml file over portal.yml file', action="store_true")
     application_init_parser.set_defaults(func=init_command)
 
     # Parse the args and call the default function

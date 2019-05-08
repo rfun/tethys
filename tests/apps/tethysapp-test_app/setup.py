@@ -6,8 +6,7 @@ from tethys_apps.app_installation import find_resource_files
 app_package = 'test_app'
 release_package = 'tethysapp-' + app_package
 app_class = 'test_app.app:TestApp'
-app_package_dir = os.path.join(os.path.dirname(
-    os.path.abspath(__file__)), 'tethysapp', app_package)
+app_package_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tethysapp', app_package)
 
 # -- Python Dependencies -- #
 dependencies = []

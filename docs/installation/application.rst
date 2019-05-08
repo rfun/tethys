@@ -50,8 +50,8 @@ This file is generated with your application scaffold. Please do NOT list any de
 	    - pyshp=2.0.0
 	    - geojson
 	    - shapely
-	  post:
-  	    - ./test.sh
+	post:
+  	  - ./test.sh
 
 
 **install.yml Options:**

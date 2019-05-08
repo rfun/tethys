@@ -1,6 +1,7 @@
 import yaml
-from os import path
-from subprocess import (call, Popen, PIPE)
+import os
+
+from subprocess import (call, Popen, PIPE, STDOUT)
 from argparse import Namespace
 from conda.cli.python_api import run_command as conda_run, Commands
 from django.core.exceptions import ObjectDoesNotExist
@@ -10,6 +11,15 @@ from tethys_apps.cli.services_commands import (services_create_persistent_comman
                                                services_list_command
                                                )
 from tethys_apps.utilities import link_service_to_app_setting
+
+FNULL = open(os.devnull, 'w')
+
+serviceLinkParam = {
+    'spatial': 'ds_spatial',
+    "dataset": 'ds_dataset',
+    "persistent": 'ps_database',
+    'wps': 'wps'
+}
 
 
 def write_error(msg):
@@ -23,7 +33,7 @@ def write_msg(msg):
         p.write(msg)
 
 
-def getServiceFromID(services, id):
+def getServiceFromID(id):
 
     from tethys_services.models import (SpatialDatasetService, PersistentStoreService,
                                         DatasetService, WebProcessingService)
@@ -31,35 +41,35 @@ def getServiceFromID(services, id):
     try:
         persistent_entries = PersistentStoreService.objects.get(id=id)  # noqa: F841
         return {"service_type": "persistent",
-                "linkParam": services['persistent']['linkParam']}
+                "linkParam": serviceLinkParam['persistent']}
     except ObjectDoesNotExist:
         pass
 
     try:
         entries = SpatialDatasetService.objects.get(id=id)  # noqa: F841
         return {"service_type": "spatial",
-                "linkParam": services['spatial']['linkParam']}
+                "linkParam": serviceLinkParam['spatial']}
     except ObjectDoesNotExist:
         pass
 
     try:
         entries = DatasetService.objects.get(id=id)  # noqa: F841
         return {"service_type": "dataset",
-                "linkParam": services['dataset']['linkParam']}
+                "linkParam": serviceLinkParam['dataset']}
     except ObjectDoesNotExist:
         pass
 
     try:
         entries = WebProcessingService.objects.get(id=id)  # noqa: F841
         return {"service_type": "wps",
-                "linkParam": services['persistent']['linkParam']}
+                "linkParam": serviceLinkParam['persistent']}
     except ObjectDoesNotExist:
         pass
 
     return False
 
 
-def getServiceFromName(name, services):
+def getServiceFromName(name):
 
     from tethys_services.models import (SpatialDatasetService, PersistentStoreService,
                                         DatasetService, WebProcessingService)
@@ -67,37 +77,36 @@ def getServiceFromName(name, services):
     try:
         persistent_entries = PersistentStoreService.objects.get(name=name)  # noqa: F841
         return {"service_type": "persistent",
-                "linkParam": services['persistent']['linkParam']}
+                "linkParam": serviceLinkParam['persistent']}
     except ObjectDoesNotExist:
         pass
 
     try:
         entries = SpatialDatasetService.objects.get(name=name)  # noqa: F841
         return {"service_type": "spatial",
-                "linkParam": services['spatial']['linkParam']}
+                "linkParam": serviceLinkParam['spatial']}
     except ObjectDoesNotExist:
         pass
 
     try:
         entries = DatasetService.objects.get(name=name)  # noqa: F841
         return {"service_type": "dataset",
-                "linkParam": services['dataset']['linkParam']}
+                "linkParam": serviceLinkParam['dataset']}
     except ObjectDoesNotExist:
         pass
 
     try:
         entries = WebProcessingService.objects.get(name=name)  # noqa: F841
         return {"service_type": "wps",
-                "linkParam": services['wps']['linkParam']}
+                "linkParam": serviceLinkParam['wps']}
     except ObjectDoesNotExist:
         pass
 
     return False
 
 
-def runInteractiveServices(services, appName):
-    write_msg('Running Interactive Service Mode. Any configuration \
-        options in install.yml for services will be ignored...')
+def runInteractiveServices(appName):
+    write_msg('Running Interactive Service Mode. Any configuration options in install.yml for services will be ignored...')
 
     # List existing services
     tempNS = Namespace()
@@ -107,12 +116,9 @@ def runInteractiveServices(services, appName):
 
     services_list_command(tempNS)
 
-    write_msg(
-        'Please enter the service ID to link one of the above listed service.')
-    write_msg(
-        'You may also enter a comma seperated list of service ids : (1,2).')
-    write_msg(
-        'Just hit return if you wish to skip this step and move on to creating your own services.')
+    write_msg('Please enter the service ID to link one of the above listed service.')
+    write_msg('You may also enter a comma seperated list of service ids : (1,2).')
+    write_msg('Just hit return if you wish to skip this step and move on to creating your own services.')
 
     valid = False
 
@@ -153,9 +159,9 @@ def runInteractiveServices(services, appName):
             exit(1)
 
 
-def find_and_link(serviceType, settingName, serviceID, appName, services):
+def find_and_link(serviceType, settingName, serviceID, appName):
 
-    service = getServiceFromName(serviceID, services)
+    service = getServiceFromName(serviceID)
     if service:
         link_service_to_app_setting(service['service_type'],
                                     serviceID,
@@ -168,14 +174,14 @@ def find_and_link(serviceType, settingName, serviceID, appName, services):
                 'Warning: Could not find service of type: {} with the name/id: {}'.format(serviceType, serviceID))
 
 
-def run_portal_init(services, filePath, appName):
+def run_portal_init(serviceModels, filePath, appName):
 
+    print("Running portal init")
     if filePath is None:
         filePath = './portal.yml'
 
-    if not path.exists(filePath):
-        write_msg(
-            """No Portal Services file found. Moving to look for local app level services.yml...""")
+    if not os.path.exists(filePath):
+        write_msg("No Portal Services file found. Moving to look for local app level services.yml...")
         return False
 
     try:
@@ -186,8 +192,7 @@ def run_portal_init(services, filePath, appName):
     except Exception as e:
         with pretty_output(FG_RED) as p:
             p.write(e)
-            p.write(
-                'An unexpected error occurred reading the file. Please try again.')
+            p.write('An unexpected error occurred reading the file. Please try again.')
             return False
 
     if "apps" in portal_options and appName in portal_options['apps'] and 'services' in portal_options['apps'][appName]:
@@ -198,14 +203,12 @@ def run_portal_init(services, filePath, appName):
                     current_services = services[serviceType]
                     for service_setting_name in current_services:
                         find_and_link(serviceType, service_setting_name,
-                                      current_services[service_setting_name], appName, services)
+                                      current_services[service_setting_name], appName)
         else:
-            write_msg(
-                "No app configuration found for app: {} in portal config file. ".format(appName))
+            write_msg("No app configuration found for app: {} in portal config file. ".format(appName))
 
     else:
-        write_msg(
-            "No apps configuration found in portal config file. ".format(appName))
+        write_msg("No apps configuration found in portal config file. ".format(appName))
 
     return True
 
@@ -228,17 +231,19 @@ def install_dependencies(condaConfig):
             Commands.INSTALL, *dependencies, use_exception_handler=False, stdout=None, stderr=None)
         if code != 0:
             with pretty_output(FG_RED) as p:
-                p.write(
-                    'Warning: Dependencies installation ran into an error. Please try again or a manual install')
+                p.write('Warning: Dependencies installation ran into an error. Please try again or a manual install')
 
 
-def run_services(servicesConfig, filePath, appName):
+def run_services(servicesConfig, filePath, appName, serviceFileInput):
 
-    filePath = './services.yml'
+    if serviceFileInput is None:
+        filePath = './services.yml'
+    else:
+        filePath = serviceFileInput
 
-    if not path.exists(filePath):
-        write_error(
-            """No Services init file found. Skipping app service installation""")
+    if not os.path.exists(filePath):
+        write_msg("No Services init file found. Skipping app service installation")
+        return
 
     try:
         with open(filePath) as f:
@@ -247,8 +252,7 @@ def run_services(servicesConfig, filePath, appName):
     except Exception as e:
         with pretty_output(FG_RED) as p:
             p.write(e)
-            p.write(
-                'An unexpected error occurred reading the file. Please try again.')
+            p.write('An unexpected error occurred reading the file. Please try again.')
             exit(1)
 
     # Setup any services that need to be setup
@@ -265,7 +269,7 @@ def run_services(servicesConfig, filePath, appName):
 
     if not skip:
         if interactive_mode:
-            runInteractiveServices(servicesConfig, appName)
+            runInteractiveServices(appName)
         else:
             if services and len(services) > 0:
                 if services['version']:
@@ -275,7 +279,7 @@ def run_services(servicesConfig, filePath, appName):
                         current_services = services[serviceType]
                         for service_setting_name in current_services:
                             find_and_link(serviceType, service_setting_name,
-                                          current_services[service_setting_name], appName, servicesConfig)
+                                          current_services[service_setting_name], appName)
         write_msg("Services Configuration Completed.")
     else:
         write_msg(
@@ -291,27 +295,11 @@ def init_command(args):
     from tethys_services.models import (
         SpatialDatasetService, DatasetService, PersistentStoreService, WebProcessingService)
 
-    services = {
-        'spatial': {
-            'create': services_create_spatial_command,
-            'model': SpatialDatasetService,
-            'linkParam': 'ds_spatial'
-        },
-        "dataset": {
-            'create': services_create_dataset_command,
-            'model': DatasetService,
-            'linkParam': 'ds_dataset'
-        },
-        "persistent": {
-            'create': services_create_persistent_command,
-            'model': PersistentStoreService,
-            'linkParam': 'ps_database'
-        },
-        'wps': {
-            'create': services_create_wps_command,
-            'model': WebProcessingService,
-            'linkParam': 'wps'
-        }
+    serviceModels = {
+        'spatial': SpatialDatasetService,
+        "dataset": DatasetService,
+        "persistent": PersistentStoreService,
+        'wps': WebProcessingService
     }
 
     try:
@@ -322,10 +310,9 @@ def init_command(args):
         if file_path is None:
             file_path = './install.yml'
 
-        if not path.exists(file_path):
+        if not os.path.exists(file_path):
             write_error(
-                'No Install File found. Please ensure install.yml exists in the \
-                root of your app and run the command from that directory')
+                'No Install File found. Please ensure install.yml exists or check the file path entered.')
 
         try:
             with open(file_path) as f:
@@ -344,7 +331,7 @@ def init_command(args):
         if "conda" not in initOptions:
             with pretty_output(FG_BLUE) as p:
                 p.write(
-                    'No Conda options found. Does your app not have any dependencies? ')
+                    'No Conda options found. Does your app not have any dependencies?')
             exit(0)
 
         condaConfig = initOptions['conda']
@@ -360,18 +347,18 @@ def init_command(args):
             install_dependencies(condaConfig)
 
         # Run Setup.py
-
         write_msg("Running application install....")
-        call(['python', 'setup.py', 'develop'])
+
+        call(['python', 'setup.py', 'develop'], stdout=FNULL, stderr=STDOUT)
         call(['tethys', 'manage', 'sync'])
 
         # Run Portal Level Config if present
         if args.force_services:
-            run_services(services, file_path, appName)
+            run_services(serviceModels, file_path, appName, args.services_file)
         else:
-            portal_result = run_portal_init(services, args.portal_file, appName)
+            portal_result = run_portal_init(serviceModels, args.portal_file, appName)
             if not portal_result:
-                run_services(services, file_path, appName)
+                run_services(serviceModels, file_path, appName, args.services_file)
 
         # Check to see if any extra scripts need to be run
 
@@ -379,10 +366,9 @@ def init_command(args):
             write_msg("Running post installation tasks...")
             for post in initOptions["post"]:
                 # Attempting to run processes.
-                process = Popen(
-                    post, shell=True, stdout=PIPE)
+                process = Popen(post, shell=True, stdout=PIPE)
                 stdout = process.communicate()[0]
-                print(stdout)
+                write_msg("Post Script Result: {}".format(stdout))
         exit(0)
 
     except Exception as e:

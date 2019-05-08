@@ -463,6 +463,8 @@ This command needs to be run from the root of the application directory.
 
 * **-p --portal-file**: Absolute path to :file:`portal.yml` file for Tethys Application installation. If provided this file will be used to gather portal configuration for services. The active directory will be searched for a portal.yml file
 
+* **-s --services-file**: Absolute path to :file:`services.yml` file for Tethys Application installation if different than default. By default it will look for services.yml in the root of your application directory. 
+
 * **--force-services**: Force the use of :file:`services.yml` over `portal.yml` file
 
 
