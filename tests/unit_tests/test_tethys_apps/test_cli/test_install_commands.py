@@ -77,7 +77,7 @@ class TestInstallServicesCommands(unittest.TestCase):
     @mock.patch('tethys_apps.cli.init_commands.link_service_to_app_setting')
     def test_portal_run(self, mock_link, mock_pretty_output, mock_exit):
         file_path = os.path.join(self.root_app_path, 'install-skip-setup.yml')
-        portal_config_file = os.path.join(self.root_app_path, 'portal.yml')
+        portal_config_file = os.path.join(self.root_app_path, '../../portal_config/portal_test.yml')
 
         args = mock.MagicMock(file=file_path, portal_file=portal_config_file, services_file="", force_services=False)
         mock_exit.side_effect = SystemExit
