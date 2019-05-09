@@ -476,7 +476,7 @@ This command needs to be run from the root of the application directory.
     $ cd $TETHYS_HOME/apps/tethysapp-my_first_app
 
     # Run Init
-    $ tethys init
+    $ tethys install
 
-    # Tethys init with custom options
-    $ tethys init -f ../install.yml -p $TETHYS_HOME/src/configs/portal.yml
+    # Tethys install with custom options
+    $ tethys install -f ../install.yml -p $TETHYS_HOME/src/configs/portal.yml

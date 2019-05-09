@@ -29,10 +29,10 @@ You will need to copy the source code of the app to the server. There are many m
 3. Install the App
 ==================
 
-Execute the setup script (:file:`setup.py`) with the ``install`` command to make Python aware of the app and install any of its dependencies::
+Execute the install command in the app directory to make Python aware of the app and install any of its dependencies::
 
     (tethys) $ cd $TETHYS_HOME/apps/tethysapp-my_first_app
-    (tethys) $ python setup.py install
+    (tethys) $ tethys install
 
 4. Collect and Static Files and Workspaces
 ==========================================

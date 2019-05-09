@@ -365,8 +365,9 @@ def init_command(args):
         if "post" in initOptions and initOptions["post"] and len(initOptions["post"]) > 0:
             write_msg("Running post installation tasks...")
             for post in initOptions["post"]:
+                path_to_post = os.path.join(os.path.dirname(os.path.realpath(file_path)), post)
                 # Attempting to run processes.
-                process = Popen(post, shell=True, stdout=PIPE)
+                process = Popen(path_to_post, shell=True, stdout=PIPE)
                 stdout = process.communicate()[0]
                 write_msg("Post Script Result: {}".format(stdout))
         exit(0)
