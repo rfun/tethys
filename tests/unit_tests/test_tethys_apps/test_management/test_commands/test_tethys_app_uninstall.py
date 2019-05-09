@@ -49,7 +49,6 @@ class ManagementCommandsTethysAppUninstallTests(unittest.TestCase):
 
     @mock.patch('tethys_apps.management.commands.tethys_app_uninstall.os.path.join')
     @mock.patch('tethys_apps.management.commands.tethys_app_uninstall.os.remove')
-    @mock.patch('tethys_apps.management.commands.tethys_app_uninstall.shutil.rmtree')
     @mock.patch('tethys_apps.management.commands.tethys_app_uninstall.subprocess.Popen')
     @mock.patch('warnings.warn')
     @mock.patch('sys.stdout', new_callable=StringIO)
@@ -63,8 +62,7 @@ class ManagementCommandsTethysAppUninstallTests(unittest.TestCase):
                                                                                     mock_installed_extensions,
                                                                                     mock_input, mock_stdout,
                                                                                     mock_warnings, mock_popen,
-                                                                                    mock_rmtree, mock_os_remove,
-                                                                                    mock_join):
+                                                                                    mock_os_remove, mock_join):
         mock_app.objects.get.return_value = mock.MagicMock()
         mock_app.objects.get().delete.return_value = True
         mock_extension.objects.get.return_value = mock.MagicMock()
@@ -73,7 +71,6 @@ class ManagementCommandsTethysAppUninstallTests(unittest.TestCase):
         mock_installed_extensions.return_value = {}
         mock_input.side_effect = ['yes']
         mock_popen.side_effect = KeyboardInterrupt
-        mock_rmtree.side_effect = OSError
         mock_os_remove.side_effect = [True, Exception]
         mock_join.return_value = '/foo/tethysapp-foo-app-nspkg.pth'
 
