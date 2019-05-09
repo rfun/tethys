@@ -24,10 +24,7 @@ class TestInstallCommands(unittest.TestCase):
 
         mock_exit.side_effect = SystemExit
 
-        try:
-            res = install_commands.init_command(args)
-        except SystemExit:
-            pass
+        self.assertRaises(SystemExit, install_commands.init_command, args)
 
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertIn(
@@ -41,10 +38,7 @@ class TestInstallCommands(unittest.TestCase):
         args = mock.MagicMock(file=file_path)
         mock_exit.side_effect = SystemExit
 
-        try:
-            res = install_commands.init_command(args)
-        except SystemExit:
-            pass
+        self.assertRaises(SystemExit, install_commands.init_command, args)
 
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertIn("No Conda options found. Does your app not have any dependencies?", po_call_args[0][0][0])
@@ -57,10 +51,7 @@ class TestInstallCommands(unittest.TestCase):
         args = mock.MagicMock(file=file_path, services_file="")
         mock_exit.side_effect = SystemExit
 
-        try:
-            res = install_commands.init_command(args)
-        except SystemExit:
-            pass
+        self.assertRaises(SystemExit, install_commands.init_command, args)
 
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertIn("Skipping dependency installation, Skip option found.", po_call_args[0][0][0])
@@ -76,16 +67,36 @@ class TestInstallCommands(unittest.TestCase):
         args = mock.MagicMock(file=file_path, services_file="")
         mock_exit.side_effect = SystemExit
 
-        try:
-            res = install_commands.init_command(args)
-        except SystemExit:
-            pass
+        self.assertRaises(SystemExit, install_commands.init_command, args)
 
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertIn("Running application install....", po_call_args[1][0][0])
         self.assertIn("No Services init file found. Skipping app service installation", po_call_args[2][0][0])
         self.assertIn("Running post installation tasks...", po_call_args[3][0][0])
         self.assertIn("Post Script Result: b'test\\n'", po_call_args[4][0][0])
+
+        mock_exit.assert_called_with(0)
+
+    @mock.patch('tethys_apps.cli.init_commands.exit')
+    @mock.patch('tethys_apps.cli.init_commands.pretty_output')
+    @mock.patch('tethys_apps.cli.init_commands.getInteractiveInput', return_value='1')
+    @mock.patch('tethys_apps.cli.init_commands.getServiceNameInput', return_value='primary')
+    @mock.patch('tethys_apps.cli.init_commands.link_service_to_app_setting')
+    def test_interactive_run(self, mock_link, mock_input, mock_input_2, mock_pretty_output, mock_exit):
+        file_path = os.path.join(self.root_app_path, 'install-skip-setup.yml')
+        services_path = os.path.join(self.root_app_path, 'services-interactive.yml')
+
+        args = mock.MagicMock(file=file_path, services_file=services_path)
+        mock_exit.side_effect = SystemExit
+
+        self.assertRaises(SystemExit, install_commands.init_command, args)
+
+        po_call_args = mock_pretty_output().__enter__().write.call_args_list
+        self.assertIn("Running Interactive Service Mode.", po_call_args[2][0][0])
+        self.assertIn("Please enter the name of the service from your app.py", po_call_args[6][0][0])
+        self.assertIn("Services Configuration Completed.", po_call_args[7][0][0])
+
+        mock_link.assert_called_with('persistent', 1, 'test_app', 'ps_database', 'primary')
 
         mock_exit.assert_called_with(0)
 
@@ -104,12 +115,7 @@ class TestInstallCommands(unittest.TestCase):
         args = mock.MagicMock(file=file_path, services_file="")
         mock_exit.side_effect = SystemExit
 
-        try:
-            res = install_commands.init_command(args)
-        except SystemExit:
-            pass
-        except Exception as e:
-            pass
+        self.assertRaises(SystemExit, install_commands.init_command, args)
 
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertIn("Running application install....", po_call_args[1][0][0])
@@ -141,7 +147,7 @@ class TestInstallCommands(unittest.TestCase):
         test_service_name = "test_persistent_install"
         try:
             PersistentStoreService.objects.get(name=test_service_name)
-        except Exception as e:
+        except Exception:
             new_service = PersistentStoreService(name=test_service_name, host='localhost',
                                                  port='1000', username='user', password='pass')
             new_service.save()

@@ -105,6 +105,16 @@ def getServiceFromName(name):
     return False
 
 
+# Pulling this function out so I can mock this for inputs to the interactive mode
+
+def getInteractiveInput():
+    return input("")
+
+
+def getServiceNameInput():
+    return input("")
+
+
 def runInteractiveServices(appName):
     write_msg('Running Interactive Service Mode. Any configuration options in install.yml for services will be ignored...')
 
@@ -124,7 +134,7 @@ def runInteractiveServices(appName):
 
     while not valid:
         try:
-            response = input("")
+            response = getInteractiveInput()
             if response != "":
                 # Parse Response
                 try:
@@ -137,7 +147,7 @@ def runInteractiveServices(appName):
                             # Ask for app setting name:
                             write_msg(
                                 'Please enter the name of the service from your app.py eg: "catalog_db")')
-                            setting_name = input("")
+                            setting_name = getServiceNameInput()
                             link_service_to_app_setting(service['service_type'],
                                                         service_id,
                                                         appName,
@@ -176,7 +186,6 @@ def find_and_link(serviceType, settingName, serviceID, appName):
 
 def run_portal_init(serviceModels, filePath, appName):
 
-    print("Running portal init")
     if filePath is None:
         filePath = './portal.yml'
 
