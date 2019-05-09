@@ -5,8 +5,10 @@ except ImportError:
 import unittest
 from unittest import mock
 
-from tethys_apps.cli.services_commands import services_create_persistent_command, services_remove_persistent_command,\
-    services_create_spatial_command, services_remove_spatial_command, services_list_command
+from tethys_apps.cli.services_commands import (services_create_persistent_command, services_remove_persistent_command,
+                                               services_create_spatial_command, services_remove_spatial_command,
+                                               services_list_command, services_create_dataset_command, services_remove_dataset_command,
+                                               services_create_wps_command)
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.utils import IntegrityError
 
@@ -589,3 +591,144 @@ class ServicesCommandsTest(unittest.TestCase):
         self.assertNotIn(self.my_dict['endpoint'], rts_call_args[1][0][0])
         self.assertNotIn(self.my_dict['public_endpoint'], rts_call_args[1][0][0])
         self.assertNotIn(self.my_dict['apikey'], rts_call_args[1][0][0])
+
+    @mock.patch('tethys_apps.cli.services_commands.pretty_output')
+    @mock.patch('tethys_services.models.DatasetService')
+    def test_services_create_dataset_command_IndexError(self, mock_service, mock_pretty_output):
+
+        mock_args = mock.MagicMock()
+        mock_args.connection = 'IndexError:9876@IndexError'  # No 'http' or '://'
+
+        services_create_dataset_command(mock_args)
+
+        mock_service.assert_not_called()
+
+        po_call_args = mock_pretty_output().__enter__().write.call_args_list
+        self.assertEqual(1, len(po_call_args))
+        self.assertIn('The connection argument (-c) must be of the form', po_call_args[0][0][0])
+        self.assertIn('"<username>:<password>@<protocol>//<host>:<port>".', po_call_args[0][0][0])
+
+    @mock.patch('tethys_apps.cli.services_commands.pretty_output')
+    @mock.patch('tethys_services.models.DatasetService')
+    def test_services_create_dataset_command_FormatError(self, mock_service, mock_pretty_output):
+
+        mock_args = mock.MagicMock()
+        mock_args.connection = 'foo:pass@http:://foo:1234'
+        mock_args.public_endpoint = 'foo@foo:foo'  # No 'http' or '://'
+
+        services_create_dataset_command(mock_args)
+
+        mock_service.assert_not_called()
+
+        po_call_args = mock_pretty_output().__enter__().write.call_args_list
+        self.assertEqual(1, len(po_call_args))
+        self.assertIn('The public_endpoint argument (-p) must be of the form ', po_call_args[0][0][0])
+        self.assertIn('"<protocol>//<host>:<port>".', po_call_args[0][0][0])
+
+    @mock.patch('tethys_apps.cli.services_commands.pretty_output')
+    @mock.patch('tethys_services.models.DatasetService')
+    def test_services_create_dataset_command_IntegrityError(self, mock_service, mock_pretty_output):
+
+        mock_args = mock.MagicMock()
+        mock_args.connection = 'foo:pass@http:://foo:1234'
+        mock_args.public_endpoint = 'http://foo:1234'
+        mock_service.side_effect = IntegrityError
+
+        services_create_dataset_command(mock_args)
+
+        mock_service.assert_called()
+
+        po_call_args = mock_pretty_output().__enter__().write.call_args_list
+        self.assertEqual(1, len(po_call_args))
+        self.assertIn('Dataset Service with name ', po_call_args[0][0][0])
+        self.assertIn('already exists. Command aborted.', po_call_args[0][0][0])
+
+    @mock.patch('tethys_apps.cli.services_commands.pretty_output')
+    @mock.patch('tethys_services.models.DatasetService')
+    def test_services_create_dataset_command(self, mock_service, mock_pretty_output):
+        mock_args = mock.MagicMock()
+        mock_args.connection = 'foo:pass@http:://foo:1234'
+        mock_args.public_endpoint = 'http://foo:1234'
+        mock_service.return_value = mock.MagicMock()
+
+        services_create_dataset_command(mock_args)
+
+        mock_service.assert_called()
+
+        po_call_args = mock_pretty_output().__enter__().write.call_args_list
+        self.assertEqual(1, len(po_call_args))
+        self.assertEqual('Successfully created new Dataset Service!', po_call_args[0][0][0])
+
+    @mock.patch('tethys_apps.cli.services_commands.input')
+    @mock.patch('tethys_apps.cli.services_commands.pretty_output')
+    @mock.patch('tethys_apps.cli.services_commands.exit')
+    @mock.patch('tethys_services.models.DatasetService')
+    def test_services_remove_dataset_command_proceed(self, mock_service, mock_exit, mock_pretty_output, mock_input):
+
+        mock_args = mock.MagicMock()
+        mock_service.__str__.return_value = 'Dataset'
+
+        mock_args.force = False
+        mock_exit.side_effect = SystemExit
+        mock_input.side_effect = ['y']
+
+        self.assertRaises(SystemExit, services_remove_dataset_command, mock_args)
+
+        mock_service.objects.get().delete.assert_called()
+
+        po_call_args = mock_pretty_output().__enter__().write.call_args_list
+        self.assertEqual(1, len(po_call_args))
+        self.assertIn('Successfully removed Dataset Service', po_call_args[0][0][0])
+
+        po_call_args = mock_input.call_args_list
+        self.assertEqual(1, len(po_call_args))
+        self.assertEqual('Are you sure you want to delete this Dataset Service? [y/n]: ', po_call_args[0][0][0])
+
+    @mock.patch('tethys_apps.cli.services_commands.pretty_output')
+    @mock.patch('tethys_services.models.WebProcessingService')
+    def test_services_create_wps_command_IndexError(self, mock_service, mock_pretty_output):
+
+        mock_args = mock.MagicMock()
+        mock_args.connection = 'IndexError:9876@IndexError'  # No 'http' or '://'
+
+        services_create_wps_command(mock_args)
+
+        mock_service.assert_not_called()
+
+        po_call_args = mock_pretty_output().__enter__().write.call_args_list
+        self.assertEqual(1, len(po_call_args))
+        self.assertIn('The connection argument (-c) must be of the form', po_call_args[0][0][0])
+        self.assertIn('"<username>:<password>@<protocol>//<host>:<port>".', po_call_args[0][0][0])
+
+    @mock.patch('tethys_apps.cli.services_commands.pretty_output')
+    @mock.patch('tethys_services.models.WebProcessingService')
+    def test_services_create_wps_command_IntegrityError(self, mock_service, mock_pretty_output):
+
+        mock_args = mock.MagicMock()
+        mock_args.connection = 'foo:pass@http:://foo:1234'
+        mock_args.public_endpoint = 'http://foo:1234'
+        mock_service.side_effect = IntegrityError
+
+        services_create_wps_command(mock_args)
+
+        mock_service.assert_called()
+
+        po_call_args = mock_pretty_output().__enter__().write.call_args_list
+        self.assertEqual(1, len(po_call_args))
+        self.assertIn('Web Processing Service with name ', po_call_args[0][0][0])
+        self.assertIn('already exists. Command aborted.', po_call_args[0][0][0])
+
+    @mock.patch('tethys_apps.cli.services_commands.pretty_output')
+    @mock.patch('tethys_services.models.WebProcessingService')
+    def test_services_create_wps_command(self, mock_service, mock_pretty_output):
+        mock_args = mock.MagicMock()
+        mock_args.connection = 'foo:pass@http:://foo:1234'
+        mock_service.return_value = mock.MagicMock()
+
+        services_create_wps_command(mock_args)
+
+        mock_service.assert_called()
+
+        po_call_args = mock_pretty_output().__enter__().write.call_args_list
+        self.assertEqual(1, len(po_call_args))
+        self.assertEqual('Successfully created new Web Processing Service!', po_call_args[0][0][0])

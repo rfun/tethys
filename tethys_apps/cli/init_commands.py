@@ -126,12 +126,12 @@ def runInteractiveServices(appName):
 
     services_list_command(tempNS)
 
-    write_msg('Please enter the service ID to link one of the above listed service.')
+    write_msg('Please enter the service ID/Name to link one of the above listed service.')
     write_msg('You may also enter a comma seperated list of service ids : (1,2).')
     write_msg('Just hit return if you wish to skip this step and move on to creating your own services.')
 
     valid = False
-
+    id_search = False
     while not valid:
         try:
             response = getInteractiveInput()
@@ -141,23 +141,29 @@ def runInteractiveServices(appName):
                     ids = int(response.replace(',', ''))
                     if not isinstance(ids, list):
                         ids = [ids]
-                    for service_id in ids:
-                        service = getServiceFromID(service_id)
-                        if service:
-                            # Ask for app setting name:
-                            write_msg(
-                                'Please enter the name of the service from your app.py eg: "catalog_db")')
-                            setting_name = getServiceNameInput()
-                            link_service_to_app_setting(service['service_type'],
-                                                        service_id,
-                                                        appName,
-                                                        service['linkParam'],
-                                                        setting_name)
-
-                    valid = True
+                    id_search = True
                 except ValueError:
-                    with pretty_output(FG_RED) as p:
-                        p.write("Invalid Input...Please try again.")
+                    ids = [response]
+                    pass
+
+                for service_id in ids:
+                    if id_search:
+                        service = getServiceFromID(service_id)
+                    else:
+                        service = getServiceFromName(service_id)
+                    if service:
+                        # Ask for app setting name:
+                        write_msg(
+                            'Please enter the name of the service from your app.py eg: "catalog_db")')
+                        setting_name = getServiceNameInput()
+                        link_service_to_app_setting(service['service_type'],
+                                                    service_id,
+                                                    appName,
+                                                    service['linkParam'],
+                                                    setting_name)
+
+                valid = True
+
             else:
                 write_msg(
                     "Please run 'tethys services create -h' to create services via the command line.")
@@ -311,79 +317,71 @@ def init_command(args):
         'wps': WebProcessingService
     }
 
+    appName = None
+    # Check if input config file exists. We Can't do anything without it
+    file_path = args.file
+
+    if file_path is None:
+        file_path = './install.yml'
+
+    if not os.path.exists(file_path):
+        write_error(
+            'No Install File found. Please ensure install.yml exists or check the file path entered.')
+
     try:
-        appName = None
-        # Check if input config file exists. We Can't do anything without it
-        file_path = args.file
-
-        if file_path is None:
-            file_path = './install.yml'
-
-        if not os.path.exists(file_path):
-            write_error(
-                'No Install File found. Please ensure install.yml exists or check the file path entered.')
-
-        try:
-            with open(file_path) as f:
-                initOptions = yaml.safe_load(f)
-
-        except Exception as e:
-            with pretty_output(FG_RED) as p:
-                p.write(e)
-                p.write(
-                    'An unexpected error occurred reading the file. Please try again.')
-                exit(1)
-
-        if "name" in initOptions:
-            appName = initOptions['name']
-
-        if "conda" not in initOptions:
-            with pretty_output(FG_BLUE) as p:
-                p.write(
-                    'No Conda options found. Does your app not have any dependencies?')
-            exit(0)
-
-        condaConfig = initOptions['conda']
-
-        skip = False
-        if "skip" in condaConfig:
-            skip = condaConfig['skip']
-            del condaConfig['skip']
-
-        if skip:
-            write_msg("Skipping dependency installation, Skip option found.")
-        else:
-            install_dependencies(condaConfig)
-
-        # Run Setup.py
-        write_msg("Running application install....")
-
-        call(['python', 'setup.py', 'develop'], stdout=FNULL, stderr=STDOUT)
-        call(['tethys', 'manage', 'sync'])
-
-        # Run Portal Level Config if present
-        if args.force_services:
-            run_services(serviceModels, file_path, appName, args.services_file)
-        else:
-            portal_result = run_portal_init(serviceModels, args.portal_file, appName)
-            if not portal_result:
-                run_services(serviceModels, file_path, appName, args.services_file)
-
-        # Check to see if any extra scripts need to be run
-
-        if "post" in initOptions and initOptions["post"] and len(initOptions["post"]) > 0:
-            write_msg("Running post installation tasks...")
-            for post in initOptions["post"]:
-                path_to_post = os.path.join(os.path.dirname(os.path.realpath(file_path)), post)
-                # Attempting to run processes.
-                process = Popen(path_to_post, shell=True, stdout=PIPE)
-                stdout = process.communicate()[0]
-                write_msg("Post Script Result: {}".format(stdout))
-        exit(0)
+        with open(file_path) as f:
+            initOptions = yaml.safe_load(f)
 
     except Exception as e:
         with pretty_output(FG_RED) as p:
-            if e:
-                p.write(e)
-            p.write('An unexpected error occurred. Please try again.')
-        exit(1)
+            p.write(e)
+            p.write(
+                'An unexpected error occurred reading the file. Please try again.')
+            exit(1)
+
+    if "name" in initOptions:
+        appName = initOptions['name']
+
+    if "conda" not in initOptions:
+        with pretty_output(FG_BLUE) as p:
+            p.write(
+                'No Conda options found. Does your app not have any dependencies?')
+        exit(0)
+
+    condaConfig = initOptions['conda']
+
+    skip = False
+    if "skip" in condaConfig:
+        skip = condaConfig['skip']
+        del condaConfig['skip']
+
+    if skip:
+        write_msg("Skipping dependency installation, Skip option found.")
+    else:
+        install_dependencies(condaConfig)
+
+    # Run Setup.py
+    write_msg("Running application install....")
+
+    call(['python', 'setup.py', 'develop'], stdout=FNULL, stderr=STDOUT)
+    call(['tethys', 'manage', 'sync'])
+
+    # Run Portal Level Config if present
+    if args.force_services:
+        run_services(serviceModels, file_path, appName, args.services_file)
+    else:
+        portal_result = run_portal_init(serviceModels, args.portal_file, appName)
+        if not portal_result:
+            run_services(serviceModels, file_path, appName, args.services_file)
+
+    # Check to see if any extra scripts need to be run
+
+    if "post" in initOptions and initOptions["post"] and len(initOptions["post"]) > 0:
+        write_msg("Running post installation tasks...")
+        for post in initOptions["post"]:
+            path_to_post = os.path.join(os.path.dirname(os.path.realpath(file_path)), post)
+            # Attempting to run processes.
+            process = Popen(path_to_post, shell=True, stdout=PIPE)
+            stdout = process.communicate()[0]
+            write_msg("Post Script Result: {}".format(stdout))
+    exit(0)

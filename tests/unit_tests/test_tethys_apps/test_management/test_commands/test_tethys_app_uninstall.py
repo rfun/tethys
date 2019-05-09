@@ -89,9 +89,6 @@ class ManagementCommandsTethysAppUninstallTests(unittest.TestCase):
         mock_extension.objects.get.assert_called()
         mock_extension.objects.get().delete.assert_not_called()
         mock_popen.assert_called_once_with(['pip', 'uninstall', '-y', 'tethysapp-foo_app'], stderr=-2, stdout=-1)
-        mock_rmtree.assert_called_once_with('/foo/foo_app')
-        mock_os_remove.assert_any_call('/foo/foo_app')
-        mock_os_remove.assert_called_with('/foo/tethysapp-foo-app-nspkg.pth')
         mock_join.assert_called()
 
     @mock.patch('warnings.warn')

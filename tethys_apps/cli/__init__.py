@@ -391,7 +391,7 @@ def tethys_command():
     application_init_parser.add_argument('-s', '--services-file', type=str,
                                          help='The path to the Services.yml config file')
     application_init_parser.add_argument(
-        '--force-services', help='Force Services.yml file over portal.yml file', action="store_true")
+        '--force-services', help='Force Services.yml file over portal.yml file', action="store_false")
     application_init_parser.set_defaults(func=init_command)
 
     # Parse the args and call the default function

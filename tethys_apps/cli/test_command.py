@@ -53,14 +53,11 @@ def test_command(args):
         elif args.file and extension_package_tag in args.file:
             extension_package_parts = args.file.split(extension_package_tag)
             extension_name = extension_package_parts[1].split('.')[0]
-            core_extension_package = '{}{}'.format(
-                extension_package_tag, extension_name)
+            core_extension_package = '{}{}'.format(extension_package_tag, extension_name)
             extension_package = 'tethysext.{}'.format(extension_name)
-            config_opt = '--source={},{}'.format(
-                core_extension_package, extension_package)
+            config_opt = '--source={},{}'.format(core_extension_package, extension_package)
         else:
-            config_opt = '--rcfile={0}'.format(
-                os.path.join(tests_path, 'coverage.cfg'))
+            config_opt = '--rcfile={0}'.format(os.path.join(tests_path, 'coverage.cfg'))
         primary_process = ['coverage', 'run', config_opt, manage_path, 'test']
 
     if args.file:
@@ -70,8 +67,8 @@ def test_command(args):
     elif args.gui:
         primary_process.append(os.path.join(tests_path, 'gui_tests'))
 
-    primary_process.append('--keepdb')
-    primary_process.append('--failfast')
+    # primary_process.append('--keepdb')
+    # primary_process.append('--failfast')
 
     test_status = run_process(primary_process)
 
@@ -102,18 +99,18 @@ def test_command(args):
 
     # Removing Test App
 
-    # try:
-    #     print("Uninstalling Test App.....")
-    #     subprocess.call(['tethys', 'uninstall', 'test_app', '-f'])
-    # except Exception as e:
-    #     print(e)
-    #     print("Test App wasn't installed. Nothing to cleanup")
+    try:
+        print("Uninstalling Test App.....")
+        subprocess.call(['tethys', 'uninstall', 'test_app', '-f'])
+    except Exception as e:
+        print(e)
+        print("Test App wasn't installed. Nothing to cleanup")
 
-    # try:
-    #     print("Uninstalling Test Extention.....")
-    #     subprocess.call(['tethys', 'uninstall', 'test_extension', '-ef'])
-    # except Exception as e:
-    #     print(e)
-    #     print("Test Extension wasn't installed. Nothing to cleanup")
+    try:
+        print("Uninstalling Test Extention.....")
+        subprocess.call(['tethys', 'uninstall', 'test_extension', '-ef'])
+    except Exception as e:
+        print(e)
+        print("Test Extension wasn't installed. Nothing to cleanup")
 
     exit(test_status)
