@@ -101,15 +101,16 @@ class TestInstallServicesCommands(unittest.TestCase):
     @mock.patch('tethys_apps.cli.init_commands.pretty_output')
     def test_basic_service(self, mock_pretty_output, mock_link, mock_exit):
 
+        file_path = os.path.join(self.root_app_path, 'install-skip-setup.yml')
+        services_path = os.path.join(self.root_app_path, 'services-basic.yml')
+        args = mock.MagicMock(file=file_path, services_file="")
+
         try:
-            import tethysapp.test_app
+            import tethysapp.test_app  # noqa: F401
             # Do a sync to ensure that the application's custom setting has been added
             subprocess.call(['tethys', 'manage', 'syncdb'], stdout=FNULL, stderr=subprocess.STDOUT)
         except ImportError:
-            res = install_commands.init_command(args)
-
-        file_path = os.path.join(self.root_app_path, 'install-skip-setup.yml')
-        services_path = os.path.join(self.root_app_path, 'services-basic.yml')
+            install_commands.init_command(args)
 
         from tethys_services.models import PersistentStoreService
         # Create test service
@@ -121,8 +122,9 @@ class TestInstallServicesCommands(unittest.TestCase):
                                                  port='1000', username='user', password='pass')
             new_service.save()
 
-        args = mock.MagicMock(file=file_path, services_file=services_path)
         mock_exit.side_effect = SystemExit
+
+        args = mock.MagicMock(file=file_path, services_file=services_path)
 
         self.assertRaises(SystemExit, install_commands.init_command, args)
 
@@ -150,8 +152,7 @@ class TestInstallCommands(unittest.TestCase):
         self.assertRaises(SystemExit, install_commands.init_command, args)
 
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
-        self.assertIn(
-            "No Install File found. Please ensure install.yml exists or check the file path entered.", po_call_args[0][0][0])
+        self.assertIn("No Install File found", po_call_args[0][0][0])
         mock_exit.assert_called_with(1)
 
     @mock.patch('tethys_apps.cli.init_commands.exit')
@@ -221,7 +222,7 @@ class TestInstallCommands(unittest.TestCase):
         self.assertIn("Running application install....", po_call_args[1][0][0])
 
         try:
-            import tethysapp.test_app
+            import tethysapp.test_app  # noqa: F401, F811
         except ImportError:
             self.fail("We should be able to import tethys application")
 

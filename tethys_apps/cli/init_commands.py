@@ -6,10 +6,8 @@ from argparse import Namespace
 from conda.cli.python_api import run_command as conda_run, Commands
 from django.core.exceptions import ObjectDoesNotExist
 from tethys_apps.cli.cli_colors import pretty_output, FG_RED, FG_BLUE, FG_YELLOW
-from tethys_apps.cli.services_commands import (services_create_persistent_command, services_create_spatial_command,
-                                               services_create_dataset_command, services_create_wps_command,
-                                               services_list_command
-                                               )
+from tethys_apps.cli.services_commands import services_list_command
+
 from tethys_apps.utilities import link_service_to_app_setting
 
 FNULL = open(os.devnull, 'w')
@@ -116,7 +114,8 @@ def getServiceNameInput():
 
 
 def runInteractiveServices(appName):
-    write_msg('Running Interactive Service Mode. Any configuration options in install.yml for services will be ignored...')
+    write_msg('Running Interactive Service Mode. '
+              'Any configuration options in install.yml for services will be ignored...')
 
     # List existing services
     tempNS = Namespace()

@@ -8,7 +8,6 @@
 ********************************************************************************
 """
 import os
-import shutil
 import site
 import subprocess
 import warnings
