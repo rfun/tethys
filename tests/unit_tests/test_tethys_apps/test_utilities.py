@@ -53,6 +53,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
     def test_get_directories_in_tethys_templates_extension_import_error(self, mock_harvester):
         # Mock the extension_modules variable with bad data, to throw an ImportError
         mock_harvester().extension_modules = {'foo_invalid_foo': 'tethysext.foo_invalid_foo'}
+        mock_harvester().app_modules = {'test_app': 'tethysapp.test_app'}
 
         result = utilities.get_directories_in_tethys(('templates',))
         self.assertGreaterEqual(len(result), 1)

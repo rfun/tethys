@@ -6,6 +6,19 @@ What's New
 
 Refer to this article for information about each new release of Tethys Platform.
 
+UnReleased |version|
+====================
+
+
+Automatic Application Installation
+----------------------------------
+
+* Support for an init.yml app specific file that will setup dependencies
+* Support for a services.yml app-portal specific file that will link services
+* Support for tethys init command
+
+
+
 Release |version|
 =================
 

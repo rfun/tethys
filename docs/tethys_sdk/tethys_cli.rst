@@ -2,7 +2,7 @@
 Command Line Interface
 **********************
 
-**Last Updated:** November 18, 2014
+**Last Updated:** March 13, 2019
 
 The Tethys Command Line Interface (CLI) provides several commands that are used for managing Tethys Platform and Tethys apps. The :term:`Python conda environment` must be activated to use the command line tools. This can be done using the following command:
 
@@ -447,3 +447,36 @@ This command is used to interact with Schedulers from the command line, rather t
 
     # Remove a scheduler
     $ tethys schedulers remove my_scheduler
+
+
+.. _tethys_cli_init:
+
+install 
+-----------------------
+
+This command is used to trigger an automatic install for an application on a portal. For this command to work, it needs an :ref:`install.yml file <tethys_install_yml>` in the app directory. If you require services to be setup automatically as well, then place a :ref:`settings.yml file <tethys_services_yml>` in the root of your application. 
+This command needs to be run from the root of the application directory. 
+
+**Optional Arguments:**
+
+* **-f --file**: Absolute path to :file:`install.yml` file for Tethys Application installation if different than default. By default it will look for install.yml in the root of your application directory. 
+
+* **-p --portal-file**: Absolute path to :file:`portal.yml` file for Tethys Application installation. If provided this file will be used to gather portal configuration for services. The active directory will be searched for a portal.yml file
+
+* **-s --services-file**: Absolute path to :file:`services.yml` file for Tethys Application installation if different than default. By default it will look for services.yml in the root of your application directory. 
+
+* **--force-services**: Force the use of :file:`services.yml` over `portal.yml` file
+
+
+**Examples:**
+
+::
+
+    # CD to your app directory
+    $ cd $TETHYS_HOME/apps/tethysapp-my_first_app
+
+    # Run Init
+    $ tethys install
+
+    # Tethys install with custom options
+    $ tethys install -f ../install.yml -p $TETHYS_HOME/src/configs/portal.yml
