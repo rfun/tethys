@@ -225,7 +225,7 @@ def tethys_command():
                                     help='The API key, if any, required to establish a connection.')
     services_create_sd.set_defaults(func=services_create_spatial_command)
 
-    # tethys services create spatial
+    # tethys services create dataset
     services_create_dataset = services_create_subparsers.add_parser('dataset',
                                                                     help='Create a CKAN/HydroShare Dataset Service.')
     services_create_dataset.add_argument('-n', '--name', required=True, help='A unique name for the Service', type=str)
@@ -243,8 +243,8 @@ def tethys_command():
                                          help='The API key, if any, required to establish a connection.')
     services_create_dataset.set_defaults(func=services_create_dataset_command)
 
-    # tethys services create spatial
-    services_create_wps = services_create_subparsers.add_parser('wps',
+    # tethys services create WPS
+    services_create_wps = services_create_subparsers.add_parser('WPS',
                                                                 help='Create a Web Processing Service.')
     services_create_wps.add_argument('-n', '--name', required=True, help='A unique name for the Service', type=str)
     services_create_wps.add_argument('-c', '--connection', required=True, type=str,
@@ -382,7 +382,7 @@ def tethys_command():
                                help="Stop boot2docker on container stop. Only applicable to stop command.")
     docker_parser.set_defaults(func=docker_command)
 
-    # Init Commands
+    # Install Commands
 
     application_init_parser = subparsers.add_parser('install', help='Install and Initialize Applications')
     application_init_parser.add_argument('-f', '--file', type=str, help='The path to the Init Config file. ')

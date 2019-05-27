@@ -1,10 +1,76 @@
 import unittest
 import os
 import subprocess
+import sys
+
 from unittest import mock
 import tethys_apps.cli.init_commands as install_commands
 
 FNULL = open(os.devnull, 'w')
+
+
+class TestServiceInstallHelpers(unittest.TestCase):
+
+    def test_get_service_from_id_fail(self):
+        self.assertFalse(install_commands.get_service_from_id(9384))
+
+    def test_get_service_from_name_fail(self):
+        self.assertFalse(install_commands.get_service_from_name("sdfsdf"))
+
+    @mock.patch('tethys_services.models.PersistentStoreService.objects.get', return_value=True)
+    def test_get_service_from_id_persistent(self, mock_get):
+        self.assertEqual(install_commands.get_service_from_id(1).get('service_type'), 'persistent')
+        mock_get.assert_called_with(id=1)
+
+    @mock.patch('tethys_services.models.SpatialDatasetService.objects.get', return_value=True)
+    def test_get_service_from_id_spatial(self, mock_get):
+        self.assertEqual(install_commands.get_service_from_id(1).get('service_type'), 'spatial')
+        mock_get.assert_called_with(id=1)
+
+    @mock.patch('tethys_services.models.DatasetService.objects.get', return_value=True)
+    def test_get_service_from_id_dataset(self, mock_get):
+        self.assertEqual(install_commands.get_service_from_id(1).get('service_type'), 'dataset')
+        mock_get.assert_called_with(id=1)
+
+    @mock.patch('tethys_services.models.WebProcessingService.objects.get', return_value=True)
+    def test_get_service_from_id_wps(self, mock_get):
+        self.assertEqual(install_commands.get_service_from_id(1).get('service_type'), 'wps')
+        mock_get.assert_called_with(id=1)
+
+    @mock.patch('tethys_services.models.PersistentStoreService.objects.get', return_value=True)
+    def test_get_service_from_name_persistent(self, mock_get):
+        self.assertEqual(install_commands.get_service_from_name("nonexisting").get('service_type'), 'persistent')
+        mock_get.assert_called_with(name='nonexisting')
+
+    @mock.patch('tethys_services.models.SpatialDatasetService.objects.get', return_value=True)
+    def test_get_service_from_name_spatial(self, mock_get):
+        self.assertEqual(install_commands.get_service_from_name("nonexisting").get('service_type'), 'spatial')
+        mock_get.assert_called_with(name='nonexisting')
+
+    @mock.patch('tethys_services.models.DatasetService.objects.get', return_value=True)
+    def test_get_service_from_name_dataset(self, mock_get):
+        self.assertEqual(install_commands.get_service_from_name("nonexisting").get('service_type'), 'dataset')
+        mock_get.assert_called_with(name='nonexisting')
+
+    @mock.patch('tethys_services.models.WebProcessingService.objects.get', return_value=True)
+    def test_get_service_from_name_wps(self, mock_get):
+        self.assertEqual(install_commands.get_service_from_name("nonexisting").get('service_type'), 'wps')
+        mock_get.assert_called_with(name='nonexisting')
+
+    @mock.patch('tethys_apps.cli.init_commands.input')
+    def test_get_interactive_input(self, mock_input):
+        install_commands.get_interactive_input()
+        mock_input.assert_called_with("")
+
+    @mock.patch('tethys_apps.cli.init_commands.input')
+    def test_get_service_name_input(self, mock_input):
+        install_commands.get_service_name_input()
+        mock_input.assert_called_with("")
+
+    def test_parse_id_input(self):
+        self.assertEqual(install_commands.parse_id_input("1,2"), (True, [1, 2]))
+        self.assertEqual(install_commands.parse_id_input("3"), (True, [3]))
+        self.assertEqual(install_commands.parse_id_input("werwr"), (False, ['werwr']))
 
 
 class TestInstallServicesCommands(unittest.TestCase):
@@ -51,10 +117,32 @@ class TestInstallServicesCommands(unittest.TestCase):
 
     @mock.patch('tethys_apps.cli.init_commands.exit')
     @mock.patch('tethys_apps.cli.init_commands.pretty_output')
-    @mock.patch('tethys_apps.cli.init_commands.getInteractiveInput', return_value='test_service_for_install')
-    @mock.patch('tethys_apps.cli.init_commands.getServiceNameInput', return_value='primary')
+    @mock.patch('tethys_apps.cli.init_commands.get_interactive_input', return_value='test_service_for_install')
+    @mock.patch('tethys_apps.cli.init_commands.get_service_name_input', return_value='primary')
     @mock.patch('tethys_apps.cli.init_commands.link_service_to_app_setting')
     def test_interactive_run(self, mock_link, mock_input, mock_input_2, mock_pretty_output, mock_exit):
+        file_path = os.path.join(self.root_app_path, 'install-skip-setup.yml')
+        services_path = os.path.join(self.root_app_path, 'services-interactive.yml')
+
+        args = mock.MagicMock(file=file_path, services_file=services_path)
+        mock_exit.side_effect = SystemExit
+
+        with @mock.patch('sys.stdout', FNULL):
+            self.assertRaises(SystemExit, install_commands.init_command, args)
+
+        po_call_args = mock_pretty_output().__enter__().write.call_args_list
+        self.assertIn("Running Interactive Service Mode.", po_call_args[2][0][0])
+        self.assertIn("Please enter the name of the service from your app.py", po_call_args[6][0][0])
+        self.assertIn("Services Configuration Completed.", po_call_args[7][0][0])
+
+        mock_link.assert_called_with('persistent', 'test_service_for_install', 'test_app', 'ps_database', 'primary')
+
+        mock_exit.assert_called_with(0)
+
+    @mock.patch('tethys_apps.cli.init_commands.exit')
+    @mock.patch('tethys_apps.cli.init_commands.pretty_output')
+    @mock.patch('tethys_apps.cli.init_commands.get_interactive_input', side_effect=KeyboardInterrupt)
+    def test_interactive_run_interrupt(self, mock_input, mock_pretty_output, mock_exit):
         file_path = os.path.join(self.root_app_path, 'install-skip-setup.yml')
         services_path = os.path.join(self.root_app_path, 'services-interactive.yml')
 
@@ -65,10 +153,7 @@ class TestInstallServicesCommands(unittest.TestCase):
 
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertIn("Running Interactive Service Mode.", po_call_args[2][0][0])
-        self.assertIn("Please enter the name of the service from your app.py", po_call_args[6][0][0])
-        self.assertIn("Services Configuration Completed.", po_call_args[7][0][0])
-
-        mock_link.assert_called_with('persistent', 'test_service_for_install', 'test_app', 'ps_database', 'primary')
+        self.assertIn("Install Command cancelled.", po_call_args[6][0][0])
 
         mock_exit.assert_called_with(0)
 
@@ -89,12 +174,6 @@ class TestInstallServicesCommands(unittest.TestCase):
         self.assertIn("Portal init file found...Processing...", po_call_args[2][0][0])
         mock_link.assert_called_with('persistent', 'test_service_for_install', 'test_app', 'ps_database', 'primary')
         mock_exit.assert_called_with(0)
-
-    def test_get_service_from_id_fail(self):
-        self.assertFalse(install_commands.getServiceFromID(9384))
-
-    def test_get_service_from_name_fail(self):
-        self.assertFalse(install_commands.getServiceFromName("sdfsdf"))
 
     @mock.patch('tethys_apps.cli.init_commands.exit')
     @mock.patch('tethys_apps.cli.init_commands.link_service_to_app_setting')

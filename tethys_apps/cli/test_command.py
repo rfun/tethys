@@ -9,34 +9,36 @@ TETHYS_SRC_DIRECTORY = get_tethys_src_dir()
 FNULL = open(os.devnull, 'w')
 
 
+def check_and_install_prereqs(tests_path):
+    try:
+        import tethysapp.test_app  # noqa: F401
+        if tethysapp.test_app == None:
+            raise ImportError
+    except Exception:
+        print("Test App not found. Installing.....")
+        setup_path = os.path.join(tests_path, 'apps', 'tethysapp-test_app')
+        subprocess.call(['python', 'setup.py', 'develop'], stdout=FNULL, stderr=subprocess.STDOUT, cwd=setup_path)
+
+    try:
+        import tethysext.test_extension  # noqa: F401
+        if tethysext.test_extension == None:
+            raise ImportError
+    except Exception:
+        print("Test Extension not found. Installing.....")
+        setup_path = os.path.join(tests_path, 'extensions', 'tethysext-test_extension')
+        subprocess.call(['python', 'setup.py', 'develop'], stdout=FNULL, stderr=subprocess.STDOUT, cwd=setup_path)
+
+
 def test_command(args):
     args.manage = False
     # Get the path to manage.py
     manage_path = get_manage_path(args)
     tests_path = os.path.join(TETHYS_SRC_DIRECTORY, 'tests')
 
+    check_and_install_prereqs(tests_path)
+
     # Define the process to be run
     primary_process = ['python', manage_path, 'test']
-
-    try:
-        import tethysapp.test_app  # noqa: F401
-    except Exception:
-
-        print("Test App not found. Installing.....")
-        setup_path = os.path.join(
-            tests_path, 'apps', 'tethysapp-test_app')
-        subprocess.call(['python', 'setup.py', 'develop'],
-                        stdout=FNULL, stderr=subprocess.STDOUT, cwd=setup_path)
-
-    try:
-        import tethysext.test_extension  # noqa: F401
-    except Exception:
-
-        print("Test Extension not found. Installing.....")
-        setup_path = os.path.join(
-            tests_path, 'extensions', 'tethysext-test_extension')
-        subprocess.call(['python', 'setup.py', 'develop'],
-                        stdout=FNULL, stderr=subprocess.STDOUT, cwd=setup_path)
 
     # Tag to later check if tests are being run on a specific app or extension
     app_package_tag = 'tethys_apps.tethysapp.'
@@ -67,9 +69,6 @@ def test_command(args):
     elif args.gui:
         primary_process.append(os.path.join(tests_path, 'gui_tests'))
 
-    # primary_process.append('--keepdb')
-    # primary_process.append('--failfast')
-
     test_status = run_process(primary_process)
 
     if args.coverage:
@@ -99,18 +98,14 @@ def test_command(args):
 
     # Removing Test App
 
-    try:
-        print("Uninstalling Test App.....")
-        subprocess.call(['tethys', 'uninstall', 'test_app', '-f'])
-    except Exception as e:
-        print(e)
-        print("Test App wasn't installed. Nothing to cleanup")
+    # try:
+    #     subprocess.call(['tethys', 'uninstall', 'test_app', '-f'], stdout=FNULL)
+    # except Exception:
+    #     pass
 
-    try:
-        print("Uninstalling Test Extention.....")
-        subprocess.call(['tethys', 'uninstall', 'test_extension', '-ef'])
-    except Exception as e:
-        print(e)
-        print("Test Extension wasn't installed. Nothing to cleanup")
+    # try:
+    #     subprocess.call(['tethys', 'uninstall', 'test_extension', '-ef'], stdout=FNULL)
+    # except Exception:
+    #     pass
 
     exit(test_status)

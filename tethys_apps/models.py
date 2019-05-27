@@ -312,10 +312,12 @@ def set_default_value(sender, instance, *args, **kwargs):
     Set the default value for `value` on the `instance` of Setting.
     This signal receiver will process it as soon as the object is created for use
 
-    :param sender: The `CustomSetting` class that sent the signal.
-    :param instance: The `CustomSetting` instance that is being
-        initialised.
-    :return: None.
+    Attributes:
+        sender(CustomSetting): The `CustomSetting` class that sent the signal.
+        instance(CustomSetting): The `CustomSetting` instance that is being initialised.
+
+    Returns:
+        None
     """
     if not instance.value or instance.value == '':
         instance.value = instance.default

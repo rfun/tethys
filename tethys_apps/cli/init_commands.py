@@ -31,7 +31,7 @@ def write_msg(msg):
         p.write(msg)
 
 
-def getServiceFromID(id):
+def get_service_from_id(id):
 
     from tethys_services.models import (SpatialDatasetService, PersistentStoreService,
                                         DatasetService, WebProcessingService)
@@ -67,7 +67,7 @@ def getServiceFromID(id):
     return False
 
 
-def getServiceFromName(name):
+def get_service_from_name(name):
 
     from tethys_services.models import (SpatialDatasetService, PersistentStoreService,
                                         DatasetService, WebProcessingService)
@@ -105,15 +105,30 @@ def getServiceFromName(name):
 
 # Pulling this function out so I can mock this for inputs to the interactive mode
 
-def getInteractiveInput():
+def get_interactive_input():
     return input("")
 
 
-def getServiceNameInput():
+def get_service_name_input():
     return input("")
 
 
-def runInteractiveServices(appName):
+def parse_id_input(inputResponse):
+    id_search = False
+
+    try:
+        ids = inputResponse.split(',')
+        ids = list(map(lambda x: int(x), ids))
+
+        id_search = True
+    except ValueError:
+        ids = [inputResponse]
+        pass
+
+    return id_search, ids
+
+
+def run_interactive_services(app_name):
     write_msg('Running Interactive Service Mode. '
               'Any configuration options in install.yml for services will be ignored...')
 
@@ -130,34 +145,26 @@ def runInteractiveServices(appName):
     write_msg('Just hit return if you wish to skip this step and move on to creating your own services.')
 
     valid = False
-    id_search = False
     while not valid:
         try:
-            response = getInteractiveInput()
+            response = get_interactive_input()
             if response != "":
                 # Parse Response
-                try:
-                    ids = int(response.replace(',', ''))
-                    if not isinstance(ids, list):
-                        ids = [ids]
-                    id_search = True
-                except ValueError:
-                    ids = [response]
-                    pass
+                id_search, ids = parse_id_input(response)
 
                 for service_id in ids:
                     if id_search:
-                        service = getServiceFromID(service_id)
+                        service = get_service_from_id(service_id)
                     else:
-                        service = getServiceFromName(service_id)
+                        service = get_service_from_name(service_id)
                     if service:
                         # Ask for app setting name:
                         write_msg(
                             'Please enter the name of the service from your app.py eg: "catalog_db")')
-                        setting_name = getServiceNameInput()
+                        setting_name = get_service_name_input()
                         link_service_to_app_setting(service['service_type'],
                                                     service_id,
-                                                    appName,
+                                                    app_name,
                                                     service['linkParam'],
                                                     setting_name)
 
@@ -171,36 +178,36 @@ def runInteractiveServices(appName):
         except (KeyboardInterrupt, SystemExit):
             with pretty_output(FG_YELLOW) as p:
                 p.write('\nInstall Command cancelled.')
-            exit(1)
+            exit(0)
 
 
-def find_and_link(serviceType, settingName, serviceID, appName):
+def find_and_link(service_type, setting_name, service_id, app_name):
 
-    service = getServiceFromName(serviceID)
+    service = get_service_from_name(service_id)
     if service:
         link_service_to_app_setting(service['service_type'],
-                                    serviceID,
-                                    appName,
+                                    service_id,
+                                    app_name,
                                     service['linkParam'],
-                                    settingName)
+                                    setting_name)
     else:
         with pretty_output(FG_RED) as p:
             p.write(
-                'Warning: Could not find service of type: {} with the name/id: {}'.format(serviceType, serviceID))
+                'Warning: Could not find service of type: {} with the name/id: {}'.format(service_type, service_id))
 
 
-def run_portal_init(serviceModels, filePath, appName):
+def run_portal_init(service_models, file_path, app_name):
 
-    if filePath is None:
-        filePath = './portal.yml'
+    if file_path is None:
+        file_path = './portal.yml'
 
-    if not os.path.exists(filePath):
+    if not os.path.exists(file_path):
         write_msg("No Portal Services file found. Moving to look for local app level services.yml...")
         return False
 
     try:
         write_msg("Portal init file found...Processing...")
-        with open(filePath) as f:
+        with open(file_path) as f:
             portal_options = yaml.safe_load(f)
 
     except Exception as e:
@@ -209,36 +216,36 @@ def run_portal_init(serviceModels, filePath, appName):
             p.write('An unexpected error occurred reading the file. Please try again.')
             return False
 
-    if "apps" in portal_options and appName in portal_options['apps'] and 'services' in portal_options['apps'][appName]:
-        services = portal_options['apps'][appName]['services']
+    if "apps" in portal_options and app_name in portal_options['apps'] and 'services' in portal_options['apps'][app_name]:
+        services = portal_options['apps'][app_name]['services']
         if services and len(services) > 0:
-            for serviceType in services:
-                if services[serviceType] is not None:
-                    current_services = services[serviceType]
+            for service_type in services:
+                if services[service_type] is not None:
+                    current_services = services[service_type]
                     for service_setting_name in current_services:
-                        find_and_link(serviceType, service_setting_name,
-                                      current_services[service_setting_name], appName)
+                        find_and_link(service_type, service_setting_name,
+                                      current_services[service_setting_name], app_name)
         else:
-            write_msg("No app configuration found for app: {} in portal config file. ".format(appName))
+            write_msg("No app configuration found for app: {} in portal config file. ".format(app_name))
 
     else:
-        write_msg("No apps configuration found in portal config file. ".format(appName))
+        write_msg("No apps configuration found in portal config file. ".format(app_name))
 
     return True
 
 
-def install_dependencies(condaConfig):
+def install_dependencies(conda_config):
     # Add all channels listed in the file.
-    if "channels" in condaConfig and condaConfig['channels'] and len(condaConfig['channels']) > 0:
-        channels = condaConfig['channels']
+    if "channels" in conda_config and conda_config['channels'] and len(conda_config['channels']) > 0:
+        channels = conda_config['channels']
         for channel in channels:
             [resp, err, code] = conda_run(
                 Commands.CONFIG, "--prepend channels {}".format(channel), use_exception_handler=True)
 
     # Install all Dependencies
 
-    if "dependencies" in condaConfig and condaConfig['dependencies'] and len(condaConfig['dependencies']) > 0:
-        dependencies = condaConfig['dependencies']
+    if "dependencies" in conda_config and conda_config['dependencies'] and len(conda_config['dependencies']) > 0:
+        dependencies = conda_config['dependencies']
         with pretty_output(FG_BLUE) as p:
             p.write('Installing Dependencies.....')
         [resp, err, code] = conda_run(
@@ -248,20 +255,20 @@ def install_dependencies(condaConfig):
                 p.write('Warning: Dependencies installation ran into an error. Please try again or a manual install')
 
 
-def run_services(servicesConfig, filePath, appName, serviceFileInput):
+def run_services(services_config, file_path, app_name, serviceFileInput):
 
     if serviceFileInput is None:
-        filePath = './services.yml'
+        file_path = './services.yml'
     else:
-        filePath = serviceFileInput
+        file_path = serviceFileInput
 
-    if not os.path.exists(filePath):
+    if not os.path.exists(file_path):
         write_msg("No Services init file found. Skipping app service installation")
         return
 
     try:
-        with open(filePath) as f:
-            initOptions = yaml.safe_load(f)
+        with open(file_path) as f:
+            init_options = yaml.safe_load(f)
 
     except Exception as e:
         with pretty_output(FG_RED) as p:
@@ -270,7 +277,7 @@ def run_services(servicesConfig, filePath, appName, serviceFileInput):
             exit(1)
 
     # Setup any services that need to be setup
-    services = initOptions
+    services = init_options
     interactive_mode = False
     skip = False
 
@@ -283,17 +290,17 @@ def run_services(servicesConfig, filePath, appName, serviceFileInput):
 
     if not skip:
         if interactive_mode:
-            runInteractiveServices(appName)
+            run_interactive_services(app_name)
         else:
             if services and len(services) > 0:
                 if services['version']:
                     del services['version']
-                for serviceType in services:
-                    if services[serviceType] is not None:
-                        current_services = services[serviceType]
+                for service_type in services:
+                    if services[service_type] is not None:
+                        current_services = services[service_type]
                         for service_setting_name in current_services:
-                            find_and_link(serviceType, service_setting_name,
-                                          current_services[service_setting_name], appName)
+                            find_and_link(service_type, service_setting_name,
+                                          current_services[service_setting_name], app_name)
         write_msg("Services Configuration Completed.")
     else:
         write_msg(
@@ -309,14 +316,14 @@ def init_command(args):
     from tethys_services.models import (
         SpatialDatasetService, DatasetService, PersistentStoreService, WebProcessingService)
 
-    serviceModels = {
+    service_models = {
         'spatial': SpatialDatasetService,
         "dataset": DatasetService,
         "persistent": PersistentStoreService,
         'wps': WebProcessingService
     }
 
-    appName = None
+    app_name = None
     # Check if input config file exists. We Can't do anything without it
     file_path = args.file
 
@@ -329,7 +336,7 @@ def init_command(args):
 
     try:
         with open(file_path) as f:
-            initOptions = yaml.safe_load(f)
+            init_options = yaml.safe_load(f)
 
     except Exception as e:
         with pretty_output(FG_RED) as p:
@@ -338,26 +345,26 @@ def init_command(args):
                 'An unexpected error occurred reading the file. Please try again.')
             exit(1)
 
-    if "name" in initOptions:
-        appName = initOptions['name']
+    if "name" in init_options:
+        app_name = init_options['name']
 
-    if "conda" not in initOptions:
+    if "conda" not in init_options:
         with pretty_output(FG_BLUE) as p:
             p.write(
                 'No Conda options found. Does your app not have any dependencies?')
         exit(0)
 
-    condaConfig = initOptions['conda']
+    conda_config = init_options['conda']
 
     skip = False
-    if "skip" in condaConfig:
-        skip = condaConfig['skip']
-        del condaConfig['skip']
+    if "skip" in conda_config:
+        skip = conda_config['skip']
+        del conda_config['skip']
 
     if skip:
         write_msg("Skipping dependency installation, Skip option found.")
     else:
-        install_dependencies(condaConfig)
+        install_dependencies(conda_config)
 
     # Run Setup.py
     write_msg("Running application install....")
@@ -367,17 +374,17 @@ def init_command(args):
 
     # Run Portal Level Config if present
     if args.force_services:
-        run_services(serviceModels, file_path, appName, args.services_file)
+        run_services(service_models, file_path, app_name, args.services_file)
     else:
-        portal_result = run_portal_init(serviceModels, args.portal_file, appName)
+        portal_result = run_portal_init(service_models, args.portal_file, app_name)
         if not portal_result:
-            run_services(serviceModels, file_path, appName, args.services_file)
+            run_services(service_models, file_path, app_name, args.services_file)
 
     # Check to see if any extra scripts need to be run
 
-    if "post" in initOptions and initOptions["post"] and len(initOptions["post"]) > 0:
+    if "post" in init_options and init_options["post"] and len(init_options["post"]) > 0:
         write_msg("Running post installation tasks...")
-        for post in initOptions["post"]:
+        for post in init_options["post"]:
             path_to_post = os.path.join(os.path.dirname(os.path.realpath(file_path)), post)
             # Attempting to run processes.
             process = Popen(path_to_post, shell=True, stdout=PIPE)

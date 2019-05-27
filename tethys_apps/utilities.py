@@ -211,9 +211,8 @@ def link_service_to_app_setting(service_type, service_uid, app_package, setting_
         Must be either 'spatial' or 'persistent' or 'dataset' or 'wps'.
     :param service_uid: The name or id of the service being linked to an app.
     :param app_package: The package name of the app whose setting is being linked to a service.
-    :param setting_type: The type of setting being linked to a service.
-        Must be one of the following: 'ps_database',
-        'ps_connection', or 'ds_spatial'.
+    :param setting_type: The type of setting being linked to a service. Must be one of the following: 'ps_database', 
+    'ps_connection', or 'ds_spatial'.
     :param setting_uid: The name or id of the setting being linked to a service.
     :return: True if successful, False otherwise.
     """

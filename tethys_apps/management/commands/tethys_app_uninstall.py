@@ -68,7 +68,7 @@ class Command(BaseCommand):
         valid_inputs = ('y', 'n', 'yes', 'no')
         no_inputs = ('n', 'no')
 
-        if(not options['is_forced']):
+        if not options['is_forced']:
             overwrite_input = input(
                 'Are you sure you want to uninstall "{0}"? (y/n): '.format(item_with_prefix)).lower()
 

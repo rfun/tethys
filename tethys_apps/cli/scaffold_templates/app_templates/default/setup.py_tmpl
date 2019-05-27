@@ -9,10 +9,6 @@ release_package = 'tethysapp-' + app_package
 app_class = '{{project}}.app:{{class_name}}'
 app_package_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tethysapp', app_package)
 
-# -- Please list all dependencies in the init.yml file -- #
-# -- Python Dependencies -- #
-dependencies = []
-
 # -- Get Resource File -- #
 resource_files = find_resource_files('tethysapp/' + app_package + '/templates')
 resource_files += find_resource_files('tethysapp/' + app_package + '/public')
@@ -34,5 +30,5 @@ setup(
     namespace_packages=['tethysapp', 'tethysapp.' + app_package],
     include_package_data=True,
     zip_safe=False,
-    install_requires=dependencies
+    install_requires=[]
 )

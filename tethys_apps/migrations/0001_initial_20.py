@@ -56,7 +56,6 @@ class Migration(migrations.Migration):
                                                               parent_link=True, primary_key=True, serialize=False,
                                                               to='tethys_apps.TethysAppSetting')),
                 ('value', models.CharField(blank=True, max_length=1024)),
-                ('default', models.CharField(blank=True, default='', max_length=1024)),
                 ('type', models.CharField(choices=[('STRING', 'String'), ('INTEGER', 'Integer'), ('FLOAT', 'Float'),
                                                    ('BOOLEAN', 'Boolean')], default='STRING', max_length=200)),
             ],
