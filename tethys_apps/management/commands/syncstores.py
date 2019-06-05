@@ -20,6 +20,7 @@ class Command(BaseCommand):
     """
     Command class that handles the syncstores command. Provides persistent store management functionality.
     """
+
     def add_arguments(self, parser):
         parser.add_argument('app_name', nargs='+', type=str)
         parser.add_argument('-r', '--refresh',

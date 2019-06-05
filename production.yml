@@ -1,0 +1,58 @@
+#these are the services that will be created on the portal
+services:
+  persistent:
+    - name: local
+      connection: "tethys_super:pass@127.0.0.1:5436"
+    # - name: main2
+    #   connection: "admin:pass@temp.google.com:4500"
+  dataset:
+  wps:
+  spatial:
+    - name: tethys_geoserver
+      public_endpoint: http://tethys.byu.edu:8181/geoserver/rest
+      connection: "admin:geoserver@http://tethys.byu.edu:8181/geoserver/rest"
+      apikey: ""
+
+apps:
+  # embalses:
+  #   source: 
+  #     # Ensure that the github repo contains an install.yml with all the dependencies configured
+  #     url: https://github.com/BYU-Hydroinformatics/embalses.git
+  #     # Will be assumed master if not present.
+  #     branch: master
+  # flood_extent_app:
+  #   source:
+  #     url: https://github.com/BYU-Hydroinformatics/tethysapp-flood_extent_app.git
+  #     branch: auto-install
+  #   services:
+  #     persistent:
+  #       primary_db: local
+  # hydroviewer_hispaniola:
+  #   source:
+  #     url: https://github.com/BYU-Hydroinformatics/hydroviewer.git
+  #     branch: hispaniola-autoinstall
+  #   custom_settings:
+  #     api_source: https://tethys.byu.edu
+  #     spt_token: a78957c48799a1d9ab5ebecc76839285c7517877
+  #     geoserver: https://tethys.byu.edu/geoserver/
+  #     user_geoserver:  admin
+  #     password_geoserver: geoserver
+  #     workspace: spt-d6e47e2a-54eb-533e-89e7-a783e083f974
+  #     region: dominican_republic-national
+  #     keywords: national
+  #     zoom_info: '0,0,0'
+  #     default_model_type: ECMWF-RAPID
+  #     default_watershed_name: Dominican Republic (National)
+  #   services:
+  #     spatial:
+  #       main_geoserver: tethys_geoserver
+  gfs:
+    source:
+      url: https://github.com/BYU-Hydroinformatics/gfs-1.git
+      branch: autoinstall
+    custom_settings:
+      Local Thredds Folder Path: thredds_dir
+      Thredds WMS URL: http://localhost:9000/thredds/wms/tethys/gfs/
+      Geoserver Workspace URL: geojson
+
+

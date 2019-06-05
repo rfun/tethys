@@ -305,6 +305,9 @@ class CustomSetting(TethysAppSetting):
         if self.type == self.TYPE_BOOLEAN:
             return self.value.lower() in self.TRUTHY_BOOL_STRINGS
 
+    def set_value(self, new_val):
+        self.value = new_val
+
 
 @django.dispatch.receiver(models.signals.post_init, sender=CustomSetting)
 def set_default_value(sender, instance, *args, **kwargs):

@@ -49,6 +49,7 @@ RUN wget ${MINICONDA_URL} -O "${TETHYS_HOME}/miniconda.sh" \
 # Setup Conda Environment
 ADD environment.yml ${TETHYS_HOME}/src/
 WORKDIR ${TETHYS_HOME}/src
+RUN ${CONDA_HOME}/bin/conda config --prepend channels conda-forge && ${CONDA_HOME}/bin/conda config --prepend channels conda-forge
 RUN ${CONDA_HOME}/bin/conda env create -n "${CONDA_ENV_NAME}" -f "environment.yml"
 
 ###########

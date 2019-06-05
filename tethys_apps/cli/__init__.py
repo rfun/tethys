@@ -388,6 +388,8 @@ def tethys_command():
     application_init_parser.add_argument('-f', '--file', type=str, help='The path to the Init Config file. ')
     application_init_parser.add_argument('-p', '--portal-file', type=str,
                                          help='The path to the Portal initialization config file')
+    application_init_parser.add_argument('-r', '--production-file', type=str,
+                                         help='The path to the Production file for portal setup')
     application_init_parser.add_argument('-s', '--services-file', type=str,
                                          help='The path to the Services.yml config file')
     application_init_parser.add_argument(
