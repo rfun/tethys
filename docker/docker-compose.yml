@@ -41,7 +41,7 @@ services:
       - ../thredds/logs/:/usr/local/tomcat/content/thredds/logs/
       - ../thredds/cache/:/usr/local/tomcat/content/thredds/cache
       - ../thredds/public/:/usr/local/tomcat/content/thredds/public
-      - ./thredds/catalog.xml:/usr/local/tomcat/content/thredds/catalog.xml
-      - ./thredds/threddsConfig.xml:/usr/local/tomcat/content/thredds/threddsConfig.xml
+      - ./thredds-config/catalog.xml:/usr/local/tomcat/content/thredds/catalog.xml
+      - ./thredds-config/threddsConfig.xml:/usr/local/tomcat/content/thredds/threddsConfig.xml
 
 
