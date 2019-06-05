@@ -1,12 +1,11 @@
-version: "3.2"
+version: "3.4"
 services:
   tethys:
-    container_name: tethyscore
-    image: tethysplatform/tethys-core
+    container_name: tethys-custom
+    image: tethys-custom
     build:
-      cache_from:
-        - tethysplatform/tethys-core
       context: ../
+      target: app
       args:
         TETHYSBUILD_DB_USERNAME: tethys_admin
         TETHYSBUILD_DB_PASSWORD: tethys123
@@ -29,3 +28,20 @@ services:
     environment:
       POSTGRES_PASSWORD: tethys123
       POSTGRES_USER: tethys_admin
+  thredds:
+    container_name: thredds
+    image: unidata/thredds-docker:4.6.13
+    restart: always
+    ports:
+      - "9000:8080"
+      - "443:8443"
+      - "8443:8443"
+    volumes:
+      - ../thredds/tomcat/logs/:/usr/local/tomcat/logs/
+      - ../thredds/logs/:/usr/local/tomcat/content/thredds/logs/
+      - ../thredds/cache/:/usr/local/tomcat/content/thredds/cache
+      - ../thredds/public/:/usr/local/tomcat/content/thredds/public
+      - ./thredds/catalog.xml:/usr/local/tomcat/content/thredds/catalog.xml
+      - ./thredds/threddsConfig.xml:/usr/local/tomcat/content/thredds/threddsConfig.xml
+
+

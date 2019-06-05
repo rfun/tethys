@@ -1,8 +1,42 @@
-FROM continuumio/miniconda3
+# Base Stage with installed deps
+# Keep it away from environment variables. 
+
+FROM continuumio/miniconda3 AS base
+
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg2 \
+ && wget -O - https://repo.saltstack.com/apt/debian/9/amd64/latest/SALTSTACK-GPG-KEY.pub | apt-key add - \
+ && echo "deb http://repo.saltstack.com/apt/debian/9/amd64/latest stretch main" > /etc/apt/sources.list.d/saltstack.list \
+ && apt-get update && apt-get install -y \
+    bzip2 \
+    git \
+    nginx \
+    gcc \
+    salt-minion \
+    procps \
+    pv \
+    curl \
+ && rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled/default
+
+
+# Setup Conda Environment
+FROM base as conda-app
+ENV TETHYS_HOME="/usr/lib/tethys" \
+    CONDA_HOME="/opt/conda" \
+    CONDA_ENV_NAME=tethys
+
+ADD environment.yml ${TETHYS_HOME}/src/
+WORKDIR ${TETHYS_HOME}/src
+RUN ${CONDA_HOME}/bin/conda env create -n "${CONDA_ENV_NAME}" -f "environment.yml"
+
+
+FROM conda-app as app
 
 ###############
 # ENVIRONMENT #
 ###############
+
 
 ARG TETHYSBUILD_DB_HOST 
 ARG TETHYSBUILD_DB_PORT 
@@ -30,24 +64,7 @@ ENV  BASH_PROFILE=".bashrc" \
 #########
 # SETUP #
 #########
-RUN mkdir -p "${TETHYS_HOME}/src"
-WORKDIR ${TETHYS_HOME}
 
-# Speed up APT installs
-RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup \
-  ; echo "Acquire::http {No-Cache=True;};" > /etc/apt/apt.conf.d/no-cache
-
-# Install APT packages
-RUN apt-get update && apt-get -y install wget gnupg2 \
- && wget -O - https://repo.saltstack.com/apt/debian/9/amd64/latest/SALTSTACK-GPG-KEY.pub | apt-key add - \
- && echo "deb http://repo.saltstack.com/apt/debian/9/amd64/latest stretch main" > /etc/apt/sources.list.d/saltstack.list
-RUN apt-get update && apt-get -y install bzip2 git nginx gcc salt-minion procps pv
-RUN rm -f /etc/nginx/sites-enabled/default
-
-# Setup Conda Environment
-ADD environment.yml ${TETHYS_HOME}/src/
-WORKDIR ${TETHYS_HOME}/src
-RUN ${CONDA_HOME}/bin/conda env create -n "${CONDA_ENV_NAME}" -f "environment.yml"
 
 ###########
 # INSTALL #
@@ -97,7 +114,7 @@ RUN /bin/bash -c '. ${CONDA_HOME}/bin/activate ${CONDA_ENV_NAME} \
 ############
 # CLEAN UP #
 ############
-RUN apt-get -y remove wget gcc gnupg2 \
+RUN apt-get -y remove gcc gnupg2 \
   ; apt-get -y autoremove \
   ; apt-get -y clean
 
