@@ -1,14 +1,14 @@
 kind: PersistentVolume
 apiVersion: v1
 metadata:
-  name: db-volume
+  name: thredds-data-volume
   labels:
     type: local
 spec:
-  storageClassName: manual
+  storageClassName: ""
   capacity:
-    storage: 10Gi
+    storage: 100Gi
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   hostPath:
-    path: "/media/root/tethys/tethys-docker/portal1/postgres-data"
+    path: "../../thredds/public/"

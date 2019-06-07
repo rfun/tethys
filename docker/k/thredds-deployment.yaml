@@ -27,36 +27,11 @@ spec:
         - containerPort: 8443
         resources: {}
         volumeMounts:
-        - mountPath: /usr/local/tomcat/logs/
-          name: thredds-claim0
-        - mountPath: /usr/local/tomcat/content/thredds/logs/
-          name: thredds-claim1
-        - mountPath: /usr/local/tomcat/content/thredds/cache
-          name: thredds-claim2
         - mountPath: /usr/local/tomcat/content/thredds/public
           name: thredds-claim3
-        - mountPath: /usr/local/tomcat/content/thredds/catalog.xml
-          name: thredds-claim4
-        - mountPath: /usr/local/tomcat/content/thredds/threddsConfig.xml
-          name: thredds-claim5
       restartPolicy: Always
       volumes:
-      - name: thredds-claim0
-        persistentVolumeClaim:
-          claimName: thredds-claim0
-      - name: thredds-claim1
-        persistentVolumeClaim:
-          claimName: thredds-claim1
-      - name: thredds-claim2
-        persistentVolumeClaim:
-          claimName: thredds-claim2
       - name: thredds-claim3
         persistentVolumeClaim:
           claimName: thredds-claim3
-      - name: thredds-claim4
-        persistentVolumeClaim:
-          claimName: thredds-claim4
-      - name: thredds-claim5
-        persistentVolumeClaim:
-          claimName: thredds-claim5
 status: {}

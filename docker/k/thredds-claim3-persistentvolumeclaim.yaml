@@ -6,9 +6,11 @@ metadata:
     io.kompose.service: thredds-claim3
   name: thredds-claim3
 spec:
+  volumeName: "thredds-data-volume"
+  storageClassName: ""
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
-      storage: 100Mi
+      storage: 100Gi
 status: {}
