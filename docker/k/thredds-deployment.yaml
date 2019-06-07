@@ -1,0 +1,62 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose -v convert -f docker-compose.yml -o k
+    kompose.version: 1.16.0 (0c01309)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: thredds
+  name: thredds
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: thredds
+    spec:
+      containers:
+      - image: unidata/thredds-docker:4.6.13
+        name: thredds
+        ports:
+        - containerPort: 8080
+        - containerPort: 8443
+        - containerPort: 8443
+        resources: {}
+        volumeMounts:
+        - mountPath: /usr/local/tomcat/logs/
+          name: thredds-claim0
+        - mountPath: /usr/local/tomcat/content/thredds/logs/
+          name: thredds-claim1
+        - mountPath: /usr/local/tomcat/content/thredds/cache
+          name: thredds-claim2
+        - mountPath: /usr/local/tomcat/content/thredds/public
+          name: thredds-claim3
+        - mountPath: /usr/local/tomcat/content/thredds/catalog.xml
+          name: thredds-claim4
+        - mountPath: /usr/local/tomcat/content/thredds/threddsConfig.xml
+          name: thredds-claim5
+      restartPolicy: Always
+      volumes:
+      - name: thredds-claim0
+        persistentVolumeClaim:
+          claimName: thredds-claim0
+      - name: thredds-claim1
+        persistentVolumeClaim:
+          claimName: thredds-claim1
+      - name: thredds-claim2
+        persistentVolumeClaim:
+          claimName: thredds-claim2
+      - name: thredds-claim3
+        persistentVolumeClaim:
+          claimName: thredds-claim3
+      - name: thredds-claim4
+        persistentVolumeClaim:
+          claimName: thredds-claim4
+      - name: thredds-claim5
+        persistentVolumeClaim:
+          claimName: thredds-claim5
+status: {}

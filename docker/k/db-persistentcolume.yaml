@@ -1,0 +1,15 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: db-volume
+  labels:
+    for: postgres
+    type: local
+spec:
+  storageClassName: ""
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/media/root/tethys/tethys-docker/portal1/postgres-data"
