@@ -11,6 +11,10 @@ services:
         TETHYSBUILD_DB_PASSWORD: tethys123
         TETHYSBUILD_DB_HOST: db
         TETHYSBUILD_DB_PORT: 5432
+    volumes:
+      - ../tethys_apps:/usr/lib/tethys/src/tethys_apps
+      - ../thredds/public/:/usr/lib/tethys/src/thredds/public/
+      - ../production.yml/:/usr/lib/tethys/src/production.yml
     ports:
       - "8000:80"
     environment:

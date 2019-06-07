@@ -86,6 +86,9 @@ ADD --chown=www:www tethys_sdk ${TETHYS_HOME}/src/tethys_sdk/
 ADD --chown=www:www tethys_services ${TETHYS_HOME}/src/tethys_services/
 ADD --chown=www:www README.rst ${TETHYS_HOME}/src/
 ADD --chown=www:www *.py ${TETHYS_HOME}/src/
+ADD --chown=www:www production.yml ${TETHYS_HOME}/src/production.yml
+# Add a .netrc file that will help retreiving GLDAS data if needed
+ADD --chown=www:www docker/.netrc /root/.netrc
 
 # Remove any apps that may have been installed in tethysapp
 RUN rm -rf ${TETHYS_HOME}/src/tethys_apps/tethysapp \

@@ -14,6 +14,9 @@ from tethys_apps.cli.services_commands import (services_create_persistent_comman
                                                services_list_command)
 
 
+from tethys_apps.cli.syncstores_command import syncstores_command
+
+
 from tethys_apps.utilities import link_service_to_app_setting
 
 FNULL = open(os.devnull, 'w')
@@ -263,7 +266,7 @@ def run_portal_init(service_models, file_path, app_name):
     return True
 
 
-def install_dependencies(conda_config):
+def install_dependencies(conda_config, pip_config):
     # Add all channels listed in the file.
     if "channels" in conda_config and conda_config['channels'] and len(conda_config['channels']) > 0:
         channels = conda_config['channels']
@@ -282,6 +285,11 @@ def install_dependencies(conda_config):
         if code != 0:
             with pretty_output(FG_RED) as p:
                 p.write('Warning: Dependencies installation ran into an error. Please try again or a manual install')
+
+    if pip_config and len(pip_config) > 0:
+        for pip_req in pip_config:
+            from pip._internal import main as pip
+            pip(['install', '--user', pip_req])
 
 
 def run_services(services_config, file_path, app_name, serviceFileInput):
@@ -357,25 +365,25 @@ def process_production_apps(apps):
             write_msg("Pulling application from source....")
             dir_path = os.path.join(root_app_path, app_name)
             service_file_path = os.path.join(dir_path, 'services.yml')
-            # if os.path.isdir(dir_path):
-            #     shutil.rmtree(dir_path)
+            if os.path.isdir(dir_path):
+                shutil.rmtree(dir_path)
 
-            # os.mkdir(dir_path)
+            os.mkdir(dir_path)
 
-            # repo = git.Repo.init(dir_path)
-            # origin = repo.create_remote('origin', apps[app_name]["source"]["url"])
-            # origin.fetch()
-            # branch = "master"
-            # if "branch" in apps[app_name]["source"]:
-            #     branch = apps[app_name]["source"]["branch"]
+            repo = git.Repo.init(dir_path)
+            origin = repo.create_remote('origin', apps[app_name]["source"]["url"])
+            origin.fetch()
+            branch = "master"
+            if "branch" in apps[app_name]["source"]:
+                branch = apps[app_name]["source"]["branch"]
 
-            # repo.git.checkout(branch)
+            repo.git.checkout(branch)
 
-            # for root, dirs, files in os.walk(dir_path):
-            #     for momo in dirs:
-            #         os.chmod(os.path.join(root, momo), 0o755)
-            #     for momo in files:
-            #         os.chmod(os.path.join(root, momo), 0o755)
+            for root, dirs, files in os.walk(dir_path):
+                for momo in dirs:
+                    os.chmod(os.path.join(root, momo), 0o755)
+                for momo in files:
+                    os.chmod(os.path.join(root, momo), 0o755)
 
             if "services" in apps[app_name]:
                 with open(service_file_path, 'w') as outfile:
@@ -452,7 +460,16 @@ def run_production_install(file_path, service_models):
         process_production_apps(production_options['apps'])
 
     write_msg("Syncing database for all installed applications...")
-    call(['tethys', 'syncstores', 'all'])
+
+    # Run the app install command with new params
+    tempNS = Namespace()
+
+    setattr(tempNS, 'app', ['all'])
+    setattr(tempNS, 'refresh', None)
+    setattr(tempNS, 'firsttime', None)
+    setattr(tempNS, 'database', None)
+
+    syncstores_command(tempNS)
 
     exit(0)
 
@@ -511,6 +528,10 @@ def init_command(args):
         exit(0)
 
     conda_config = init_options['conda']
+    if 'pip' in init_options:
+        pip_config = init_options['pip']
+    else:
+        pip_config = None
 
     skip = False
     if "skip" in conda_config:
@@ -521,7 +542,7 @@ def init_command(args):
         write_msg("Skipping dependency installation, Skip option found.")
     else:
         pass
-        # install_dependencies(conda_config)
+        install_dependencies(conda_config, pip_config)
 
     # Run Setup.py
     write_msg("Running application install....")
@@ -555,7 +576,7 @@ def init_command(args):
         for post in init_options["post"]:
             path_to_post = os.path.join(os.path.dirname(os.path.realpath(file_path)), post)
             # Attempting to run processes.
-            process = Popen([path_to_post, source_dir], stdout=PIPE)
+            process = Popen(['bash', path_to_post, source_dir], stdout=PIPE)
             stdout = process.communicate()[0]
             write_msg("Post Script Result: {}".format(stdout))
 

@@ -2,7 +2,7 @@
 services:
   persistent:
     - name: local
-      connection: "tethys_admin:tethys123@db:5432"
+      connection: "tethys_admin:pass@127.0.0.1:5436"
   spatial:
     - name: tethys_geoserver
       public_endpoint: http://tethys.byu.edu:8181/geoserver/rest
@@ -12,18 +12,6 @@ services:
   wps:
     
 apps:
-  # gw:
-  #   source: 
-  #     url: https://github.com/BYU-Hydroinformatics/tethysapp-gw.git
-  #     branch: auto-install
-  gldas:
-    source: 
-      url: https://github.com/BYU-Hydroinformatics/gldas.git
-      branch: auto-install
-    custom_settings:
-      Local Thredds Folder Path: thredds_dir
-      Thredds WMS URL: http://localhost:9000/thredds/wms/tethys/gldas/
-      Geoserver Workspace URL: geojson
   embalses:
     source: 
       # Ensure that the github repo contains an install.yml with all the dependencies configured
