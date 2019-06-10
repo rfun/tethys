@@ -6,11 +6,11 @@ metadata:
     io.kompose.service: tethys-claim0
   name: tethys-claim0
 spec:
-  volumeName: "thredds-data-volume"
+  volumeName: "thredds-data-volume-2"
   storageClassName: ""
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 100Gi
+      storage: 10Gi
 status: {}

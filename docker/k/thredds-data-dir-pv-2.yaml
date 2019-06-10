@@ -1,7 +1,7 @@
 kind: PersistentVolume
 apiVersion: v1
 metadata:
-  name: thredds-data-volume
+  name: thredds-data-volume-2
   labels:
     type: local
 spec:

@@ -12,10 +12,10 @@ services:
   wps:
     
 apps:
-   gw:
-     source: 
-       url: https://github.com/BYU-Hydroinformatics/tethysapp-gw.git
-       branch: auto-install
+#   gw:
+ #    source: 
+ #      url: https://github.com/BYU-Hydroinformatics/tethysapp-gw.git
+ #      branch: auto-install
   gldas:
     source: 
       url: https://github.com/BYU-Hydroinformatics/gldas.git
