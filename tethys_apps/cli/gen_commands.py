@@ -112,6 +112,8 @@ def generate_command(args):
     if args.type == GEN_SETTINGS_OPTION:
         # Generate context variables
         secret_key = ''.join([random.choice(string.ascii_letters + string.digits) for _ in range(50)])
+        mount_path = get_environment_value('TETHYS_MOUNT_PATH') or '/'
+        mount_path = os.path.join(mount_path, '')
         context.update({'secret_key': secret_key,
                         'allowed_host': args.allowed_host,
                         'allowed_hosts': args.allowed_hosts,
@@ -120,18 +122,21 @@ def generate_command(args):
                         'db_port': args.db_port,
                         'tethys_home': TETHYS_HOME,
                         'production': args.production,
-                        'open_portal': args.open_portal
+                        'open_portal': args.open_portal,
+                        'mount_path': mount_path
                         })
 
     if args.type == GEN_NGINX_OPTION:
         hostname = str(settings.ALLOWED_HOSTS[0]) if len(settings.ALLOWED_HOSTS) > 0 else '127.0.0.1'
         workspaces_root = get_settings_value('TETHYS_WORKSPACES_ROOT')
         static_root = get_settings_value('STATIC_ROOT')
+        mount_path = get_environment_value('TETHYS_MOUNT_PATH') or '/'
 
         context.update({'hostname': hostname,
                         'workspaces_root': workspaces_root,
                         'static_root': static_root,
-                        'client_max_body_size': args.client_max_body_size
+                        'client_max_body_size': args.client_max_body_size,
+                        'mount_path': mount_path
                         })
 
     if args.type == GEN_UWSGI_SERVICE_OPTION:
@@ -157,10 +162,12 @@ def generate_command(args):
     if args.type == GEN_UWSGI_SETTINGS_OPTION:
         conda_home = get_environment_value('CONDA_HOME')
         conda_env_name = get_environment_value('CONDA_ENV_NAME')
+        mount_path = get_environment_value('TETHYS_MOUNT_PATH')
 
         context.update({'conda_home': conda_home,
                         'conda_env_name': conda_env_name,
-                        'uwsgi_processes': args.uwsgi_processes})
+                        'uwsgi_processes': args.uwsgi_processes,
+                        'mount_path': mount_path})
 
     if args.directory:
         if os.path.isdir(args.directory):

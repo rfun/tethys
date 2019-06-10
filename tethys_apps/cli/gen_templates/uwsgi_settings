@@ -5,7 +5,7 @@ uwsgi:
     # absolute path to the base directory (%d is the path to this file)
     chdir:  %d
     # Tethys's wsgi file
-    module: wsgi
+    mount: {{ mount_path }}=tethys_portal.wsgi
     # absolute path to the conda environment
     home:   {{ conda_home }}/envs/{{ conda_env_name }}
     
@@ -22,3 +22,4 @@ uwsgi:
     vacuum: true
     # log to file
     logto2: /var/log/uwsgi/tethys.log
+    manage-script-name: true

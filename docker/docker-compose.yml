@@ -1,8 +1,21 @@
-version: "3"
+version: "3.4"
 services:
   tethys:
     container_name: tethys-custom
-    image: byuhydro/tethys-custom-indrhi:0.0.2
+    image: tethys-custom
+    build:
+      context: ../
+      target: app
+      args:
+        TETHYSBUILD_DB_USERNAME: tethys_admin
+        TETHYSBUILD_DB_PASSWORD: tethys123
+        TETHYSBUILD_DB_HOST: db
+        TETHYSBUILD_DB_PORT: 5432
+    volumes:
+      # - ../tethys_apps:/usr/lib/tethys/src/tethys_apps
+      # - ../tethys_portal:/usr/lib/tethys/src/tethys_portal
+      - ../thredds/public/:/usr/lib/tethys/src/thredds/public/
+      - ../production.yml/:/usr/lib/tethys/src/production.yml
     ports:
       - "8000:80"
     environment:
@@ -10,20 +23,17 @@ services:
       ALLOWED_HOSTS: '"[''127.0.0.1'', ''localhost'']"'
       TETHYS_SUPER_USER: "admin"
       TETHYS_SUPER_USER_PASS: "pass"
+      TETHYS_MOUNT_PATH: "/tethys/indrhi"
     links:
       - db
     depends_on:
       - db
-    volumes:
-     - ../thredds/public/:/usr/lib/tethys/src/thredds/public/
   db:
     image: postgres
     restart: always
     environment:
       POSTGRES_PASSWORD: tethys123
       POSTGRES_USER: tethys_admin
-    volumes:
-      - /media/root/tethys/tethys-docker/portal1/postgres-data:/var/lib/postgresql/data
   thredds:
     container_name: thredds
     image: unidata/thredds-docker:4.6.13

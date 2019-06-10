@@ -26,7 +26,7 @@ server {
     }
 
     # Finally, send all non-media requests to the Django server.
-    location / {
+    location {{ mount_path }} {
         uwsgi_pass  django;
         include /etc/nginx/uwsgi_params;
     }
