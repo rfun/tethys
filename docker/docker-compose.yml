@@ -12,9 +12,8 @@ services:
         TETHYSBUILD_DB_HOST: db
         TETHYSBUILD_DB_PORT: 5432
     volumes:
-      - ../tethys_apps:/usr/lib/tethys/src/tethys_apps
       - ../thredds/public/:/usr/lib/tethys/src/thredds/public/
-      - ../production.yml/:/usr/lib/tethys/src/production.yml    
+      - ../production.yml/:/usr/lib/tethys/src/production.yml
     ports:
       - "8000:80"
     environment:
@@ -22,6 +21,7 @@ services:
       ALLOWED_HOSTS: '"[''127.0.0.1'', ''localhost'']"'
       TETHYS_SUPER_USER: "admin"
       TETHYS_SUPER_USER_PASS: "pass"
+      TETHYS_MOUNT_PATH: "/tethys/indrhi"
     links:
       - db
     depends_on:
@@ -32,8 +32,6 @@ services:
     environment:
       POSTGRES_PASSWORD: tethys123
       POSTGRES_USER: tethys_admin
-    volumes:
-      - /media/root/tethys/tethys-docker/portal1/postgres-data:/var/lib/postgresql/data
   thredds:
     container_name: thredds
     image: unidata/thredds-docker:4.6.13
