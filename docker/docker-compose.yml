@@ -12,8 +12,6 @@ services:
         TETHYSBUILD_DB_HOST: db
         TETHYSBUILD_DB_PORT: 5432
     volumes:
-      # - ../tethys_apps:/usr/lib/tethys/src/tethys_apps
-      # - ../tethys_portal:/usr/lib/tethys/src/tethys_portal
       - ../thredds/public/:/usr/lib/tethys/src/thredds/public/
       # - ../production.yml/:/usr/lib/tethys/src/production.yml
     ports:
