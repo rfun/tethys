@@ -436,7 +436,26 @@ def process_custom_settings(settings, app_name):
         print(e)
 
 
+def process_portal_settings(settings):
+    write_msg("Processing Portal Settings")
+
+    try:
+        # Try to get the settings
+        from tethys_config.models import Setting
+
+        for new_setting in settings:
+            portal_setting_obj = Setting.objects.get(name=new_setting)
+            setattr(portal_setting_obj, 'content', settings[new_setting])
+            portal_setting_obj.save()
+
+    except Exception as e:
+        print(e)
+
+
 def run_production_install(file_path, service_models):
+
+    if file_path is None:
+        return
 
     if not os.path.exists(file_path):
         write_error("No Production File found at that path. Aborting. ")
@@ -453,11 +472,13 @@ def run_production_install(file_path, service_models):
             exit(1)
 
     if "services" in production_options:
-        pass
         process_production_services(production_options['services'], service_models)
 
     if "apps" in production_options:
         process_production_apps(production_options['apps'])
+
+    if "portal_settings" in production_options:
+        process_portal_settings(production_options['portal_settings'])
 
     write_msg("Syncing database for all installed applications...")
 

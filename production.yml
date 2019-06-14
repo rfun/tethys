@@ -1,21 +1,35 @@
 #these are the services that will be created on the portal
-services:
-  persistent:
-    - name: local
-      connection: "tethys_admin:tethys123@db:5432"
-  spatial:
-    - name: tethys_geoserver
-      public_endpoint: http://tethys.byu.edu:8181/geoserver/rest
-      connection: "admin:geoserver@http://tethys.byu.edu:8181/geoserver/rest"
-      apikey : ""
-  dataset:
-  wps:
+# services:
+#   persistent:
+#     - name: local
+#       connection: "tethys_admin:tethys123@db:5432"
+#   spatial:
+#     - name: tethys_geoserver
+#       public_endpoint: http://tethys.byu.edu:8181/geoserver/rest
+#       connection: "admin:geoserver@http://tethys.byu.edu:8181/geoserver/rest"
+#       apikey : ""
+#   dataset:
+#   wps:
     
+
 apps:
-   gw:
-     source: 
-       url: https://github.com/BYU-Hydroinformatics/tethysapp-gw.git
-       branch: auto-install
+  hydroviewer_central_america:
+    source:
+      url: https://github.com/BYU-Hydroinformatics/hydroviewer.git
+      branch: central_america_auto
+    custom_settings:
+      api_source: https://tethys.byu.edu
+      spt_token: a78957c48799a1d9ab5ebecc76839285c7517877
+      geoserver: https://tethys.byu.edu/geoserver/
+      user_geoserver:  admin
+      password_geoserver: geoserver
+      workspace: central_america_hydroviewer
+      region: central_america-merit
+      keywords: central_america
+      zoom_info: '-87,13,5'
+      default_model_type: ECMWF-RAPID
+      default_watershed_name: Central America (Merit)
+      show_dropdown: 'True'
   gldas:
     source: 
       url: https://github.com/BYU-Hydroinformatics/gldas.git
@@ -24,38 +38,14 @@ apps:
       Local Thredds Folder Path: thredds_dir
       Thredds WMS URL: http://localhost:9000/thredds/wms/tethys/gldas/
       Geoserver Workspace URL: geojson
-  embalses:
+  ldas_central:
     source: 
-      # Ensure that the github repo contains an install.yml with all the dependencies configured
-      url: https://github.com/BYU-Hydroinformatics/embalses.git
-      # Will be assumed master if not present.
+      url: https://github.com/BYU-Hydroinformatics/ldas_central.git
       branch: master
-  flood_extent_app:
-    source:
-      url: https://github.com/BYU-Hydroinformatics/tethysapp-flood_extent_app.git
-      branch: auto-install
-    services:
-      persistent:
-        primary_db: local
-  hydroviewer_hispaniola:
-    source:
-      url: https://github.com/BYU-Hydroinformatics/hydroviewer.git
-      branch: hispaniola-autoinstall
     custom_settings:
-      api_source: https://tethys.byu.edu
-      spt_token: a78957c48799a1d9ab5ebecc76839285c7517877
-      geoserver: https://tethys.byu.edu/geoserver/
-      user_geoserver:  admin
-      password_geoserver: geoserver
-      workspace: spt-d6e47e2a-54eb-533e-89e7-a783e083f974
-      region: dominican_republic-national
-      keywords: national
-      zoom_info: '0,0,0'
-      default_model_type: ECMWF-RAPID
-      default_watershed_name: Dominican Republic (National)
-    services:
-      spatial:
-        main_geoserver: tethys_geoserver
+      Local Thredds Folder Path: /usr/lib/tethys/src/thredds/public/gldas/raw
+      Thredds WMS URL: http://localhost:9000/thredds/wms/tethys/gldas/
+      Geoserver Workspace URL: geojson
   gfs:
     source:
       url: https://github.com/BYU-Hydroinformatics/gfs-1.git
@@ -64,5 +54,94 @@ apps:
       Local Thredds Folder Path: thredds_dir
       Thredds WMS URL: http://localhost:9000/thredds/wms/tethys/gfs/
       Geoserver Workspace URL: geojson
+
+ 
+
+portal_settings:
+  Site Title: ""
+  Favicon: /tethys_portal/images/default_favicon.pn
+  Brand Text: ""
+  Brand Image: ""
+  Brand Image Width: 60 px
+  Brand Image Height: 60 px
+  Brand Image Padding: "" 
+  Apps Library Title: "Apps Library"
+  Primary Color: "#134C7F"
+  Secondary Color: "#515787"
+  Background Color: ""
+  Primary Text Color: ""
+  Secondary Text Color: ""
+  Secondary Text Hover Color: "" 
+  Footer Copyright: Copyright © 2019 CRRH
+
+
+#    gw:
+#      source: 
+#        url: https://github.com/BYU-Hydroinformatics/tethysapp-gw.git
+#        branch: auto-install
+#   gldas:
+#     source: 
+#       url: https://github.com/BYU-Hydroinformatics/gldas.git
+#       branch: auto-install
+#     custom_settings:
+#       Local Thredds Folder Path: thredds_dir
+#       Thredds WMS URL: http://localhost:9000/thredds/wms/tethys/gldas/
+#       Geoserver Workspace URL: geojson
+#   embalses:
+#     source: 
+#       # Ensure that the github repo contains an install.yml with all the dependencies configured
+#       url: https://github.com/BYU-Hydroinformatics/embalses.git
+#       # Will be assumed master if not present.
+#       branch: master
+#   flood_extent_app:
+#     source:
+#       url: https://github.com/BYU-Hydroinformatics/tethysapp-flood_extent_app.git
+#       branch: auto-install
+#     services:
+#       persistent:
+#         primary_db: local
+#   hydroviewer_hispaniola:
+#     source:
+#       url: https://github.com/BYU-Hydroinformatics/hydroviewer.git
+#       branch: hispaniola-autoinstall
+#     custom_settings:
+#       api_source: https://tethys.byu.edu
+#       spt_token: a78957c48799a1d9ab5ebecc76839285c7517877
+#       geoserver: https://tethys.byu.edu/geoserver/
+#       user_geoserver:  admin
+#       password_geoserver: geoserver
+#       workspace: spt-d6e47e2a-54eb-533e-89e7-a783e083f974
+#       region: dominican_republic-national
+#       keywords: national
+#       zoom_info: '0,0,0'
+#       default_model_type: ECMWF-RAPID
+#       default_watershed_name: Dominican Republic (National)
+#     services:
+#       spatial:
+#         main_geoserver: tethys_geoserver
+#   gfs:
+#     source:
+#       url: https://github.com/BYU-Hydroinformatics/gfs-1.git
+#       branch: autoinstall
+#     custom_settings:
+#       Local Thredds Folder Path: thredds_dir
+#       Thredds WMS URL: http://localhost:9000/thredds/wms/tethys/gfs/
+#       Geoserver Workspace URL: geojson
+# portal_settings:
+#   Site Title: ""
+#   Favicon: /tethys_portal/images/default_favicon.pn
+#   Brand Text: ""
+#   Brand Image: ""
+#   Brand Image Width: 60 px
+#   Brand Image Height: 60 px
+#   Brand Image Padding: "" 
+#   Apps Library Title: "Apps Library"
+#   Primary Color: "#393b45"
+#   Secondary Color: "#6E7889"
+#   Background Color: ""
+#   Primary Text Color: ""
+#   Secondary Text Color: ""
+#   Secondary Text Hover Color: "" 
+#   Footer Copyright: Copyright © 2019 INDRHI
 
 

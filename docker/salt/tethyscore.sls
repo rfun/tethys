@@ -31,12 +31,6 @@ Edit_Tethys_Settings_File_(HOST)_TethysCore:
     - repl: "'HOST': '{{ TETHYS_DB_HOST }}'"
     - unless: /bin/bash -c "[ -f "/usr/lib/tethys/setup_complete" ];"
 
-Edit_Tethys_Settings_File_(HOME_PAGE)_TethysCore:
-  file.replace:
-    - name: {{ TETHYS_HOME }}/src/tethys_portal/settings.py
-    - pattern: "BYPASS_TETHYS_HOME_PAGE = False"
-    - repl: "BYPASS_TETHYS_HOME_PAGE = True"
-    - unless: /bin/bash -c "[ -f "/usr/lib/tethys/setup_complete" ];"
 
 Edit_Tethys_Settings_File_(SESSION_WARN)_TethysCore:
   file.replace:
