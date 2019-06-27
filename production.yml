@@ -43,7 +43,7 @@ apps:
       url: https://github.com/BYU-Hydroinformatics/ldas_central.git
       branch: master
     custom_settings:
-      Local Thredds Folder Path: /usr/lib/tethys/src/thredds/public/gldas/raw
+      Local Thredds Folder Path: /usr/lib/tethys/src/thredds/public/gldas
       Thredds WMS URL: http://localhost:9000/thredds/wms/tethys/gldas/
       Geoserver Workspace URL: geojson
   gfs:
