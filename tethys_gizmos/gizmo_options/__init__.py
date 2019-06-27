@@ -7,6 +7,7 @@
 * License: BSD 2-Clause
 ********************************************************************************
 """
+# flake8: noqa
 from .date_picker import *
 from .button import *
 from .range_slider import *
@@ -23,3 +24,4 @@ from .plotly_view import PlotlyView
 from .bokeh_view import BokehView
 from .datatable_view import DataTableView
 from .esri_map import *
+from .cesium_map_view import *

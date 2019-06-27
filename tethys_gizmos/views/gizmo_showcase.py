@@ -10,18 +10,21 @@
 """
 import json
 from datetime import datetime
-from django.contrib.auth.decorators import login_required
+from tethys_sdk.permissions import login_required
 from django.shortcuts import render, redirect
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 import plotly.graph_objs as go
 from bokeh.plotting import figure as bokeh_figure
 from requests.exceptions import ConnectionError
 
-from tethys_sdk.gizmos import *
+from tethys_sdk.gizmos import Button, ButtonGroup, DatePicker, RangeSlider, SelectInput, TextInput, ToggleSwitch, \
+    LinePlot, ScatterPlot, PolarPlot, PiePlot, BarPlot, TimeSeries, AreaRange, PlotlyView, BokehView, TableView, \
+    DataTableView, MessageBox, GoogleMapView, MVView, MVDraw, MVLayer, MVLegendClass, MapView, JobsTable, EMView, \
+    EMLayer, ESRIMap, CesiumMapView
 from tethys_sdk.services import list_spatial_dataset_engines
-from tethys_compute.models import BasicJob
+from tethys_compute.models import TethysJob, BasicJob, CondorWorkflow
 
 
 def get_geoserver_wms():
@@ -36,7 +39,6 @@ def get_geoserver_wms():
         if spatial_dataset_engine.type == 'GEOSERVER':
             try:
                 spatial_dataset_engine.validate()
-                geoserver_engine = spatial_dataset_engine
                 geoserver_endpoint = spatial_dataset_engine.endpoint
                 geoserver_wms = geoserver_endpoint.replace('rest', 'wms')
                 break
@@ -155,7 +157,6 @@ def index(request):
                                         multiple=True,
                                         original=True,
                                         options=[('One', '1'), ('Two', '2'), ('Three', '3')])
-
 
     # Text Input
     text_input = TextInput(display_text='Text',
@@ -327,17 +328,18 @@ def index(request):
     )
 
     # D3 Scatter Plot
-    d3_scatter_plot_view = ScatterPlot(width='100%',
-                                       height='500px',
-                                       engine='d3',
-                                       title='D3 Scatter Plot',
-                                       subtitle='D3 Scatter Plot',
-                                       x_axis_title='Height',
-                                       x_axis_units='cm',
-                                       y_axis_title='Weight',
-                                       y_axis_units='kg',
-                                       series=[male_dataset, female_dataset]
-                                       )
+    d3_scatter_plot_view = ScatterPlot(
+        width='100%',
+        height='500px',
+        engine='d3',
+        title='D3 Scatter Plot',
+        subtitle='D3 Scatter Plot',
+        x_axis_title='Height',
+        x_axis_units='cm',
+        y_axis_title='Weight',
+        y_axis_units='kg',
+        series=[male_dataset, female_dataset]
+    )
 
     # Web Plot
     web_plot = PolarPlot(
@@ -347,22 +349,22 @@ def index(request):
         title='Polar Chart',
         subtitle='Polar Chart',
         pane={
-          'size': '80%'
+            'size': '80%'
         },
         categories=['Infiltration', 'Soil Moisture', 'Precipitation',
                     'Evaporation', 'Roughness', 'Runoff', 'Permeability',
                     'Vegetation'],
         series=[
-          {
-              'name': 'Park City',
-              'data': [0.2, 0.5, 0.1, 0.8, 0.2, 0.6, 0.8, 0.3],
-              'pointPlacement': 'on'
-          },
-          {
-              'name': 'Little Dell',
-              'data': [0.8, 0.3, 0.2, 0.5, 0.1, 0.8, 0.2, 0.6],
-              'pointPlacement': 'on'
-          }
+            {
+                'name': 'Park City',
+                'data': [0.2, 0.5, 0.1, 0.8, 0.2, 0.6, 0.8, 0.3],
+                'pointPlacement': 'on'
+            },
+            {
+                'name': 'Little Dell',
+                'data': [0.8, 0.3, 0.2, 0.5, 0.1, 0.8, 0.2, 0.6],
+                'pointPlacement': 'on'
+            }
         ]
     )
 
@@ -640,14 +642,14 @@ def index(request):
     x = [datetime(year=2013, month=10, day=4),
          datetime(year=2013, month=11, day=5),
          datetime(year=2013, month=12, day=6)]
-    
+
     my_plotly_view = PlotlyView([go.Scatter(x=x, y=[1, 3, 6])])
-    
-    #TODO: Add pandas example when pandas is included with Tethys Platform
+
+    # TODO: Add pandas example when pandas is included with Tethys Platform
 
     # Bokeh View
     plot = bokeh_figure(plot_height=300)
-    plot.circle([1,2], [3,4])
+    plot.circle([1, 2], [3, 4])
     my_bokeh_view = BokehView(plot, height="300px")
 
     # Table View
@@ -678,7 +680,7 @@ def index(request):
                                             ('Bob', 26, 'boss')],
                                       searching=False,
                                       orderClasses=False,
-                                      lengthMenu=[ [10, 25, 50, -1], [10, 25, 50, "All"] ],
+                                      lengthMenu=[[10, 25, 50, -1], [10, 25, 50, "All"]],
                                       )
 
     datatable_with_extension = DataTableView(column_names=('Name', 'Age', 'Job'),
@@ -725,11 +727,7 @@ def index(request):
     )
 
     # Define drawing options
-    drawing_options = MVDraw(
-        controls=['Modify', 'Delete', 'Move', 'Point', 'LineString', 'Polygon', 'Box'],
-        initial='Point',
-        output_format='WKT'
-    )
+    drawing_options = MVDraw(output_format='WKT')
 
     # Define the layers
     map_layers = []
@@ -768,14 +766,35 @@ def index(request):
         ]
     }
 
-    geojson_layer = MVLayer(source='GeoJSON',
-                            options=geojson_object,
-                            legend_title='Test GeoJSON',
-                            legend_extent=[-46.7, -48.5, 74, 59],
-                            legend_classes=[
-                                MVLegendClass('polygon', 'Polygons', fill='rgba(255,255,255,0.8)', stroke='#3d9dcd'),
-                                MVLegendClass('line', 'Lines', stroke='#3d9dcd')
-                            ])
+    style = {'ol.style.Style': {
+        'stroke': {'ol.style.Stroke': {
+            'color': 'blue',
+            'width': 2
+        }},
+        'fill': {'ol.style.Fill': {
+            'color': 'green'
+        }},
+        'image': {'ol.style.Circle': {
+            'radius': 10,
+            'fill': None,
+            'stroke': {'ol.style.Stroke': {
+                'color': 'red',
+                'width': 2
+            }}
+        }}
+    }}
+
+    geojson_layer = MVLayer(
+        source='GeoJSON',
+        options=geojson_object,
+        layer_options={'style': style},
+        legend_title='Test GeoJSON',
+        legend_extent=[-46.7, -48.5, 74, 59],
+        legend_classes=[
+            MVLegendClass('polygon', 'Polygons', fill='green', stroke='blue'),
+            MVLegendClass('line', 'Lines', stroke='blue')
+        ]
+    )
 
     map_layers.append(geojson_layer)
 
@@ -832,28 +851,17 @@ def index(request):
                                draw=drawing_options,
                                legend=True)
 
-    jobs = BasicJob.objects.filter(label='gizmos_showcase').order_by('id')
-
-    # Table View
-    jobs_table_options = JobsTable(
-        jobs=jobs,
-        column_fields=('id', 'name', 'description', 'creation_time', 'execute_time'),
-        hover=True,
-        striped=False,
-        bordered=False,
-        condensed=False,
-        results_url='gizmos:results',
-        refresh_interval=10000,
-        delete_btn=True,
+    # ESRI Map Gizmo
+    esri_map_view = EMView(center=[-100, 40], zoom=4)
+    esri_layer = EMLayer(
+        type='FeatureLayer',
+        url='http://geoserver.byu.edu/arcgis/rest/services/gaugeviewer/AHPS_gauges/MapServer/0'
     )
 
-    #ESRI Map Gizmo
-    esri_map_view = EMView(center=[-100, 40], zoom=4)
-    esri_layer = EMLayer(type='FeatureLayer',
-                         url='http://geoserver.byu.edu/arcgis/rest/services/gaugeviewer/AHPS_gauges/MapServer/0')
-
-    vector_tile = EMLayer(type='ImageryLayer',
-                          url='https://sampleserver6.arcgisonline.com/arcgis/rest/services/NLCDLandCover2001/ImageServer')
+    vector_tile = EMLayer(
+        type='ImageryLayer',
+        url='https://sampleserver6.arcgisonline.com/arcgis/rest/services/NLCDLandCover2001/ImageServer'
+    )
 
     esri_map = ESRIMap(height='400px', width='100%', basemap='topo', view=esri_map_view,
                        layers=[vector_tile, esri_layer])
@@ -889,9 +897,8 @@ def index(request):
                'message_box': message_box,
                'google_map_view': google_map_view,
                'flash_message': flash_message,
-               'jobs_table_options': jobs_table_options,
                'map_view_options': map_view_options,
-               "esri_map":esri_map,
+               "esri_map": esri_map,
                'scatter_plot_view': scatter_plot_view,
                'pie_plot_view': pie_plot_view,
                'd3_pie_plot_view': d3_pie_plot_view,
@@ -912,7 +919,8 @@ def get_kml(request):
     This action is used to pass the kml data to the google map. It must return JSON with the key 'kml_link'.
     """
     kml_links = [
-        'http://ciwckan.chpc.utah.edu/dataset/00d54047-8581-4dc2-bdc2-b96f5a635455/resource/69f8e7df-da87-47cd-90a1-d15dc84e99ba/download/indexclusters.kml']
+        'http://ciwckan.chpc.utah.edu/dataset/00d54047-8581-4dc2-bdc2-b96f5a635455/resource'
+        '/69f8e7df-da87-47cd-90a1-d15dc84e99ba/download/indexclusters.kml']
 
     return JsonResponse({'kml_links': kml_links})
 
@@ -925,7 +933,8 @@ def swap_kml(request):
         pass
 
     kml_links = [
-        'http://ciwckan.chpc.utah.edu/dataset/00d54047-8581-4dc2-bdc2-b96f5a635455/resource/53c7a910-5e00-4af7-803a-e48e0f17a131/download/elevation.kml']
+        'http://ciwckan.chpc.utah.edu/dataset/00d54047-8581-4dc2-bdc2-b96f5a635455/resource'
+        '/53c7a910-5e00-4af7-803a-e48e0f17a131/download/elevation.kml']
 
     return HttpResponse(json.dumps(kml_links), content_type='application/json')
 
@@ -935,31 +944,48 @@ def swap_overlays(request):
     This action is used to demonstrate how overlay layers can be swapped out dynamically using the javascript API.
     """
 
-    overlay_json = {"type": "GeometryCollection",
-                    "geometries": [{"type": "Polygon",
-                                    "coordinates": [[40.643135583312805, -111.48951530456543],
-                                                    [40.636622594719725, -111.49432182312012],
-                                                    [40.63310531666155, -111.4877986907959],
-                                                    [40.63805550673186, -111.48110389709473],
-                                                    [40.6413120105605, -111.48539543151855]],
-                                    "properties": {"id": 4, "value": 5}, "crs": {"type": "link", "properties": {
-                            "href": "http://spatialreference.org/ref/epsg/4326/proj4/", "type": "proj4"}}
-                                    },
-                                   {"type": "Point",
-                                    "coordinates": [40.629587853312174, -111.50959968566895],
-                                    "properties": {"id": 5, "value": 6}, "crs": {"type": "link", "properties": {
-                                       "href": "http://spatialreference.org/ref/epsg/4326/proj4/", "type": "proj4"}}
-                                    },
-                                   {"type": "LineString",
-                                    "coordinates": [[40.62737305910759, -111.50118827819824],
-                                                    [40.61564645424611, -111.5071964263916],
-                                                    [40.61277963772034, -111.48608207702637],
-                                                    [40.62802447679272, -111.49157524108887]],
-                                    "properties": {"id": 6, "value": 7}, "crs": {"type": "link", "properties": {
-                                       "href": "http://spatialreference.org/ref/epsg/4326/proj4/", "type": "proj4"}}
-                                    }
-                                   ]
-                    }
+    overlay_json = {
+        "type": "GeometryCollection",
+        "geometries": [
+            {"type": "Polygon",
+             "coordinates": [[40.643135583312805, -111.48951530456543],
+                             [40.636622594719725, -111.49432182312012],
+                             [40.63310531666155, -111.4877986907959],
+                             [40.63805550673186, -111.48110389709473],
+                             [40.6413120105605, -111.48539543151855]],
+             "properties": {"id": 4, "value": 5},
+             "crs": {"type": "link",
+                     "properties": {
+                         "href": "http://spatialreference.org/ref/epsg/4326/proj4/",
+                         "type": "proj4"
+                     }
+                     }
+             },
+            {"type": "Point",
+             "coordinates": [40.629587853312174, -111.50959968566895],
+             "properties": {"id": 5, "value": 6},
+             "crs": {"type": "link",
+                     "properties": {
+                         "href": "http://spatialreference.org/ref/epsg/4326/proj4/",
+                         "type": "proj4"
+                     }
+                     }
+             },
+            {"type": "LineString",
+             "coordinates": [[40.62737305910759, -111.50118827819824],
+                             [40.61564645424611, -111.5071964263916],
+                             [40.61277963772034, -111.48608207702637],
+                             [40.62802447679272, -111.49157524108887]],
+             "properties": {"id": 6, "value": 7},
+             "crs": {"type": "link",
+                     "properties": {
+                         "href": "http://spatialreference.org/ref/epsg/4326/proj4/",
+                         "type": "proj4"
+                     }
+                     }
+             }
+        ]
+    }
 
     return HttpResponse(json.dumps(overlay_json), content_type='application/json')
 
@@ -971,37 +997,42 @@ def google_map_view(request):
     """
 
     # Editable Google Map
-    google_map_view = GoogleMapView(height='600px',
-                                    width='100%',
-                                    reference_kml_action=reverse('gizmos:get_kml'),
-                                    drawing_types_enabled=['POLYGONS', 'POINTS', 'POLYLINES', 'BOXES'],
-                                    initial_drawing_mode='BOXES',
-                                    input_overlays={"type": "GeometryCollection",
-                                              "geometries": [
-                                                  {"type": "Point",
-                                                   "coordinates": [40.629197012613545, -111.5123462677002],
-                                                   "properties": {"id": 1, "value": 1}},
-                                                  {"type": "Polygon",
-                                                   "coordinates": [[40.63193284946615, -111.50153160095215],
-                                                                   [40.617210120505035, -111.50101661682129],
-                                                                   [40.623594711231775, -111.48625373840332],
-                                                                   [40.63193284946615, -111.49123191833496]],
-                                                   "properties": {"id": 2, "value": 2}},
-                                                  {"type": "LineString",
-                                                   "coordinates": [[40.65003865742191, -111.49123191833496],
-                                                                   [40.635319920747456, -111.49088859558105],
-                                                                   [40.64912697157757, -111.48127555847168],
-                                                                   [40.634668574229735, -111.48024559020996]],
-                                                   "properties": {"id": 3, "value": 3}},
-                                                  {"type": "BoundingBox",
-                                                   "bounds": [-111.54521942138672, 40.597792003905454, -111.46625518798828,
-                                                              40.66449372533465],
-                                                   "properties": {"id": 4, "value": 4}
-                                                   }
-                                                   ]
-                                               },
-                                    output_format='WKT',
-                                    )
+    google_map_view = GoogleMapView(
+        height='600px',
+        width='100%',
+        reference_kml_action=reverse('gizmos:get_kml'),
+        drawing_types_enabled=['POLYGONS', 'POINTS', 'POLYLINES', 'BOXES'],
+        initial_drawing_mode='BOXES',
+        input_overlays={
+            "type": "GeometryCollection",
+            "geometries": [
+                {"type": "Point",
+                 "coordinates": [40.629197012613545, -111.5123462677002],
+                 "properties": {"id": 1, "value": 1}
+                 },
+                {"type": "Polygon",
+                 "coordinates": [[40.63193284946615, -111.50153160095215],
+                                 [40.617210120505035, -111.50101661682129],
+                                 [40.623594711231775, -111.48625373840332],
+                                 [40.63193284946615, -111.49123191833496]],
+                 "properties": {"id": 2, "value": 2}
+                 },
+                {"type": "LineString",
+                 "coordinates": [[40.65003865742191, -111.49123191833496],
+                                 [40.635319920747456, -111.49088859558105],
+                                 [40.64912697157757, -111.48127555847168],
+                                 [40.634668574229735, -111.48024559020996]],
+                 "properties": {"id": 3, "value": 3}
+                 },
+                {"type": "BoundingBox",
+                 "bounds": [-111.54521942138672, 40.597792003905454,
+                            -111.46625518798828, 40.66449372533465],
+                 "properties": {"id": 4, "value": 4}
+                 }
+            ]
+        },
+        output_format='WKT',
+    )
 
     if ('editable_map_submit' in request.POST) and (request.POST['geometry']):
         # Some example code showing how you can decode the JSON into python
@@ -1034,11 +1065,7 @@ def map_view(request):
     )
 
     # Define drawing options
-    drawing_options = MVDraw(
-        controls=['Modify', 'Delete', 'Move', 'Point', 'LineString', 'Polygon', 'Box'],
-        initial='Point',
-        output_format='GeoJSON'
-    )
+    drawing_options = MVDraw()
 
     # Define GeoJSON layer
     geojson_object = {
@@ -1077,14 +1104,45 @@ def map_view(request):
     # Define layers
     map_layers = []
 
+    style_map = {
+        'Point': {'ol.style.Style': {
+            'image': {'ol.style.Circle': {
+                'radius': 5,
+                'fill': {'ol.style.Fill': {
+                    'color': 'red',
+                }},
+                'stroke': {'ol.style.Stroke': {
+                    'color': 'red',
+                    'width': 2
+                }}
+            }}
+        }},
+        'LineString': {'ol.style.Style': {
+            'stroke': {'ol.style.Stroke': {
+                'color': 'green',
+                'width': 3
+            }}
+        }},
+        'Polygon': {'ol.style.Style': {
+            'stroke': {'ol.style.Stroke': {
+                'color': 'blue',
+                'width': 1
+            }},
+            'fill': {'ol.style.Fill': {
+                'color': 'rgba(0, 0, 255, 0.1)'
+            }}
+        }},
+    }
+
     geojson_layer = MVLayer(source='GeoJSON',
                             options=geojson_object,
-                            editable=False,
+                            layer_options={'style_map': style_map},
                             legend_title='Test GeoJSON',
                             legend_extent=[-46.7, -48.5, 74, 59],
                             legend_classes=[
-                                MVLegendClass('polygon', 'Polygons', fill='rgba(255,255,255,0.8)', stroke='#3d9dcd'),
-                                MVLegendClass('line', 'Lines', stroke='#3d9dcd')
+                                MVLegendClass('polygon', 'Polygons', fill='rgba(0, 0, 255, 0.1)', stroke='blue'),
+                                MVLegendClass('line', 'Lines', stroke='green'),
+                                MVLegendClass('point', 'Points', fill='red')
                             ])
 
     map_layers.append(geojson_layer)
@@ -1149,37 +1207,353 @@ def map_view(request):
 
     return render(request, 'tethys_gizmos/gizmo_showcase/map_view.html', context)
 
+
 @login_required()
 def esri_map(request):
 
     esri_map_view = EMView(center=[-100, 40], zoom=4)
-    esri_layer = EMLayer(type='FeatureLayer',
-                         url='http://geoserver.byu.edu/arcgis/rest/services/gaugeviewer/AHPS_gauges/MapServer/0')
+    esri_layer = EMLayer(
+        type='FeatureLayer',
+        url='http://geoserver.byu.edu/arcgis/rest/services/gaugeviewer/AHPS_gauges/MapServer/0'
+    )
 
-    vector_tile = EMLayer(type='ImageryLayer',
-                          url='https://sampleserver6.arcgisonline.com/arcgis/rest/services/NLCDLandCover2001/ImageServer')
+    vector_tile = EMLayer(
+        type='ImageryLayer',
+        url='https://sampleserver6.arcgisonline.com/arcgis/rest/services/NLCDLandCover2001/ImageServer'
+    )
 
-    esri_map = ESRIMap(height='400px', width='100%', basemap='topo', view=esri_map_view,
-                              layers=[vector_tile, esri_layer])
+    esri_map = ESRIMap(height='400px', width='100%', basemap='topo',
+                       view=esri_map_view, layers=[vector_tile, esri_layer])
 
-    context = {"esri_map":esri_map}
+    context = {"esri_map": esri_map}
 
-    return render(request,'tethys_gizmos/gizmo_showcase/esri_map.html',context)
+    return render(request, 'tethys_gizmos/gizmo_showcase/esri_map.html', context)
+
+
+@login_required()
+def cesium_map_view(request, type):
+    # Define nav link
+    home_link = reverse('gizmos:cesium_map_view', kwargs={'type': 'home'})
+    map_layers_link = reverse('gizmos:cesium_map_view', kwargs={'type': 'map_layers'})
+    terrain_link = reverse('gizmos:cesium_map_view', kwargs={'type': 'terrain'})
+    czml_link = reverse('gizmos:cesium_map_view', kwargs={'type': 'czml'})
+    model_link = reverse('gizmos:cesium_map_view', kwargs={'type': 'model'})
+    model2_link = reverse('gizmos:cesium_map_view', kwargs={'type': 'model2'})
+
+    header_link = {"home_link": home_link, "map_layers_link": map_layers_link, "terrain_link": terrain_link,
+                   "czml_link": czml_link, "model_link": model_link, "model2_link": model2_link,
+                   "page_type": type}
+
+    # 1. Basic Map
+    height = '600px'
+    if type == 'home':
+        cesium_map_view = CesiumMapView(height=height)
+
+    # 2. Map Layers
+    if type == 'map_layers':
+        cesium_map_view = CesiumMapView(
+            height=height,
+            draw=True,
+            options={'shouldAnimate': False, 'timeline': False, 'homeButton': False},
+            layers={'EsriArcGISMapServer': {
+                'imageryProvider': {
+                    'Cesium.ArcGisMapServerImageryProvider': [{
+                        'url': 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer'
+                    }]
+                }
+            }}
+        )
+
+    # 3. Terrain
+    if type == 'terrain':
+        cesium_map_view = CesiumMapView(
+            height=height,
+            draw=True,
+            options={'shouldAnimate': False, 'timeline': False, 'homeButton': False},
+            terrain={'terrainProvider': {'Cesium.createWorldTerrain': {'requestVertexNormals': True,
+                                                                       'requestWaterMask': True}}},
+            view={'flyTo': {
+                'destination': {'Cesium.Cartesian3.fromDegrees': [-122.19, 46.25, 5000.0]},
+                'orientation': {
+                    'direction': {
+                        'Cesium.Cartesian3': [-0.04231243104240401, -0.20123236049443421, -0.97862924300734]
+                    },
+                    'up': {
+                        'Cesium.Cartesian3': [-0.47934589305293746, -0.8553216253114552, 0.1966022179118339]
+                    }
+                }
+            }}
+        )
+
+    # 4. czml Object
+    if type == 'czml':
+        cesium_map_view = CesiumMapView(
+            height=height,
+            options={'shouldAnimate': True,
+                     'timeline': False,
+                     'homeButton': False,
+                     'shadows': True,
+                     },
+            view={'lookAt': {
+                'center': {'Cesium.Cartesian3.fromDegrees': [-58.0, 40.0]},
+                'offset': {'Cesium.Cartesian3': [0.0, -4790000.0, 3930000.0]},
+            }},
+            layers={'BingMap': {
+                'imageryProvider': {
+                    'Cesium.BingMapsImageryProvider': {
+                        'url': 'https://dev.virtualearth.net',
+                        'key': 'AnYTMwSuR3-CBMzhN0yAYrtl-28rEFe7Kxfg2IWC9csUBCn0nYDFXW1ioNakjX3W',
+                        'mapStyle': 'Cesium.BingMapsStyle.AERIAL',
+                    },
+                }
+            }},
+            entities={'czml': [
+                {
+                    "id": "document",
+                    "name": "CZML Geometries: Polygon",
+                    "version": "1.0"
+                },
+                {
+                    "id": "redPolygon",
+                    "name": "Red polygon on surface",
+                    "polygon":
+                        {
+                            "positions":
+                                {
+                                    "cartographicDegrees": [
+                                        -115.0, 37.0, 0,
+                                        -115.0, 32.0, 0,
+                                        -107.0, 33.0, 0,
+                                        -102.0, 31.0, 0,
+                                        -102.0, 35.0, 0
+                                    ]
+                                },
+                            "material":
+                                {
+                                    "solidColor":
+                                        {
+                                            "color":
+                                                {
+                                                    "rgba": [255, 0, 0, 255]
+                                                }
+                                        }
+                                }
+                        }
+                },
+                {
+                    "id": "greenPolygon",
+                    "name": "Green extruded polygon",
+                    "polygon":
+                        {
+                            "positions": {
+                                "cartographicDegrees": [
+                                    -108.0, 42.0, 0,
+                                    -100.0, 42.0, 0,
+                                    -104.0, 40.0, 0
+                                ]
+                            },
+                            "material":
+                                {
+                                    "solidColor":
+                                        {
+                                            "color": {
+                                                "rgba": [0, 255, 0, 255]
+                                            }
+                                        }
+                                },
+                            "extrudedHeight": 500000.0,
+                            "closeTop": False,
+                            "closeBottom": False
+                        }
+                },
+                {
+                    "id": "orangePolygon",
+                    "name": "Orange polygon with per-position heights and outline",
+                    "polygon":
+                        {
+                            "positions": {
+                                "cartographicDegrees": [
+                                    -108.0, 25.0, 100000,
+                                    -100.0, 25.0, 100000,
+                                    -100.0, 30.0, 100000,
+                                    -108.0, 30.0, 300000
+                                ]
+                            },
+                            "material": {
+                                "solidColor": {
+                                    "color": {
+                                        "rgba": [255, 100, 0, 100]
+                                    }
+                                }
+                            },
+                            "extrudedHeight": 0,
+                            "perPositionHeight": True,
+                            "outline": True,
+                            "outlineColor": {
+                                "rgba": [0, 0, 0, 255]
+                            }
+                        }
+                }]
+            },
+        )
+
+    # 5. Model.
+    if type == 'model':
+        object1 = '/static/tethys_gizmos/cesium_models/CesiumAir/Cesium_Air.glb'
+        cesium_map_view = CesiumMapView(
+            height=height,
+            options={
+                'shouldAnimate': True,
+                'timeline': True,
+                'homeButton': True,
+                'shadows': True,
+            },
+            layers={'BingMap': {'imageryProvider': {
+                'Cesium.BingMapsImageryProvider': [{
+                    'url': 'https://dev.virtualearth.net',
+                    'key': 'AnYTMwSuR3-CBMzhN0yAYrtl-28rEFe7Kxfg2IWC9csUBCn0nYDFXW1ioNakjX3W',
+                    'mapStyle': 'Aerial',
+                }],
+            }}},
+            models={
+                'Cesium_Airplane': {
+                    'model': {
+                        'uri': object1,
+                        'show': True,
+                        'minimumPixelSize': 128,
+                        'maximumScale': 20000,
+                        'shadows': 'enabled',
+                    },
+                    'name': object1,
+                    'orientation': {
+                        'Cesium.Transforms.headingPitchRollQuaternion':
+                            [{'Cesium.Cartesian3.fromDegrees': [-123.0744619, 44.0503706, 5000]},
+                             {'Cesium.HeadingPitchRoll': [{'Cesium.Math.toRadians': 135}, 0, 0]}]},
+                    'position': {'Cesium.Cartesian3.fromDegrees': [-123.0744619, 44.0503706, 5000]},
+                },
+            },
+            clock={'clock': {'Cesium.Clock': {
+                'startTime': {'Cesium.JulianDate.fromIso8601': ['2017-07-11T00:00:00Z']},
+                'stopTime': {'Cesium.JulianDate.fromIso8601': ['2017-07-11T24:00:00Z']},
+                'currentTime': {'Cesium.JulianDate.fromIso8601': ['2017-07-11T10:00:00Z']},
+                'clockRange': 'Cesium.ClockRange.LOOP_STOP',
+                'clockStep': 'Cesium.ClockStep.SYSTEM_CLOCK_MULTIPLIER',
+                'multiplier': 1000,
+                'shouldAnimate': True
+            }}}
+        )
+
+    if type == 'model2':
+        object1 = '/static/tethys_gizmos/cesium_models/CesiumAir/Cesium_Air.glb'
+        object2 = '/static/tethys_gizmos/cesium_models/CesiumBalloon/CesiumBalloon.glb'
+        cesium_map_view = CesiumMapView(
+            height='80%',
+            width='80%',
+            options={'shouldAnimate': True,
+                     'timeline': True,
+                     'homeButton': True,
+                     'shadows': True,
+                     },
+            layers={'BingMap': {
+                'imageryProvider': {'Cesium.BingMapsImageryProvider': [{
+                    'url': 'https://dev.virtualearth.net',
+                    'key': 'AnYTMwSuR3-CBMzhN0yAYrtl-28rEFe7Kxfg2IWC9csUBCn0nYDFXW1ioNakjX3W',
+                    'mapStyle': 'Aerial',
+                }]}
+            }},
+            models={
+                'Cesium_Airplane': {
+                    'model': {
+                        'uri': object1,
+                        'show': True,
+                        'minimumPixelSize': 128,
+                        'maximumScale': 20000,
+                        'shadows': 'enabled',
+                    },
+                    'name': object1,
+                    'orientation': {'Cesium.Transforms.headingPitchRollQuaternion': [
+                            {'Cesium.Cartesian3.fromDegrees': [-123.0744619, 44.0503706, 5000]},
+                            {'Cesium.HeadingPitchRoll': [{'Cesium.Math.toRadians': 135}, 0, 0]}
+                        ]},
+                    'position': {'Cesium.Cartesian3.fromDegrees': [-123.0744619, 44.0503706, 5000]},
+                },
+                'Cesium_Ballon': {
+                    'model': {
+                        'uri': object2,
+                        'show': True,
+                        'minimumPixelSize': 128,
+                        'maximumScale': 20000,
+                        'shadows': 'enabled',
+                    },
+                    'name': object2,
+                    'orientation': {
+                        'Cesium.Transforms.headingPitchRollQuaternion': [
+                            {'Cesium.Cartesian3.fromDegrees': [-123.0744619, 44.0503706, 5000]},
+                            {'Cesium.HeadingPitchRoll': [{'Cesium.Math.toRadians': 135}, 0, 0]}
+                        ]
+                    },
+                    'position': {
+                        'Cesium.Cartesian3.fromDegrees': [-123.0744619, 44.0503706, 5000]
+                    },
+
+                },
+            },
+        )
+
+    submitted_geometry = request.POST.get('geometry', None)
+
+    if submitted_geometry is not None:
+        messages.info(request, submitted_geometry)
+
+    context = {"cesium_map_view": cesium_map_view}
+    context.update(header_link)
+
+    return render(request, 'tethys_gizmos/gizmo_showcase/cesium_map_view.html', context)
+
+
+def jobs_table_demo(request):
+    jobs = TethysJob.objects.filter(label='gizmos_showcase').order_by('id').select_subclasses()
+
+    # Table View
+    jobs_table_options = JobsTable(
+        jobs=jobs,
+        column_fields=('id', 'name', 'description', 'creation_time'),
+        hover=True,
+        striped=False,
+        bordered=False,
+        condensed=False,
+        results_url='gizmos:results',
+        refresh_interval=10000,
+        delete_btn=True,
+        show_detailed_status=True
+    )
+
+    context = {'jobs_table': jobs_table_options}
+
+    return render(request, 'tethys_gizmos/gizmo_showcase/jobs_table.html', context)
+
 
 def jobs_table_results(request, job_id):
     return redirect(reverse('gizmos:showcase') + '#jobs_table_docs')
 
 
 def create_sample_jobs(request):
-    def create_job(id, description, status):
-        job = BasicJob(name='job_{0}'.format(id),
-                       user=request.user,
-                       description=description,
-                       label='gizmos_showcase',
-                       # execute_time=,
-                       # completion_time=,
-                       _status=status,
-                       )
+    def create_job(id, description, status, workflow=False):
+        if not workflow:
+            job = BasicJob(name='job_{0}'.format(id),
+                           user=request.user,
+                           description=description,
+                           label='gizmos_showcase',
+                           _status=status,
+                           )
+        else:
+            job = CondorWorkflow(
+                name='job_{0}'.format(id),
+                user=request.user,
+                description=description,
+                label='gizmos_showcase',
+                _status=status
+            )
         job.save()
 
     create_job('1', 'Pending job', 'PEN')
@@ -1190,5 +1564,6 @@ def create_sample_jobs(request):
     create_job('6', 'Aborted job', 'ABT')
     create_job('7', 'Completed job', 'COM')
     create_job('8', 'Completed multi-process job with some errors', 'VCP')
+    create_job('9', 'Workflow job with multiple nodes.', 'VAR', workflow=True)
 
-    return redirect(reverse('gizmos:showcase') + '#jobs_table_docs')
+    return redirect(reverse('gizmos:jobs_table') + '#jobs_table_docs')

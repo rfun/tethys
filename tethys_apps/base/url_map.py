@@ -7,19 +7,17 @@
 * License: BSD 2-Clause
 ********************************************************************************
 """
-from past.builtins import basestring
-
-DEFAULT_EXPRESSION = '[0-9A-Za-z-_.]+'
+DEFAULT_EXPRESSION = r'[0-9A-Za-z-_.]+'
 
 
-class UrlMapBase(object):
+class UrlMapBase:
     """
     Abstract base class for Tethys app controllers
     """
 
     root_url = ''
 
-    def __init__(self, name, url, controller, regex=None):
+    def __init__(self, name, url, controller, protocol='http', regex=None):
         """
         Constructor
 
@@ -28,14 +26,16 @@ class UrlMapBase(object):
           url (str): Url pattern to map to the controller.
           controller (str): Dot-notation path to the controller.
           regex (str or iterable, optional): Custom regex pattern(s) for url variables. If a string is provided, it will be applied to all variables. If a list or tuple is provided, they will be applied in variable order.
-        """
+        """  # noqa: E501
         # Validate
-        if regex and (not isinstance(regex, basestring) and not isinstance(regex, tuple) and not isinstance(regex, list)):
+        if regex and (not isinstance(regex, str) and not isinstance(regex, tuple)
+                      and not isinstance(regex, list)):
             raise ValueError('Value for "regex" must be either a string, list, or tuple.')
 
         self.name = name
-        self.url = django_url_preprocessor(url, self.root_url, regex)
-        self.controller = '.'.join(['tethys_apps.tethysapp', controller])
+        self.url = django_url_preprocessor(url, self.root_url, protocol, regex)
+        self.controller = controller
+        self.protocol = protocol
         self.custom_match_regex = regex
 
     def __repr__(self):
@@ -53,15 +53,18 @@ def url_map_maker(root_url):
     return type('UrlMap', (UrlMapBase,), properties)
 
 
-def django_url_preprocessor(url, root_url, custom_regex=None):
+def django_url_preprocessor(url, root_url, protocol, custom_regex=None):
     """
     Convert url from the simplified string version for app developers to Django regular expression.
 
     e.g.:
 
         '/example/resource/{variable_name}/'
-        r'^/example/resource/?P<variable_name>[1-9A-Za-z\-]+/$'
+        r'^/example/resource/(?P<variable_name>[0-9A-Za-z-]+)//$'
     """
+    # Remove last slash if present
+    if url.endswith('/'):
+        url = url[:-1]
 
     # Split the url into parts
     url_parts = url.split('/')
@@ -81,18 +84,14 @@ def django_url_preprocessor(url, root_url, custom_regex=None):
 
             # Determine expression to use
             # String case
-            if isinstance(custom_regex, basestring):
+            if isinstance(custom_regex, str):
                 expression = custom_regex
             # List or tuple case
             elif (isinstance(custom_regex, list) or isinstance(custom_regex, tuple)) and len(custom_regex) > 0:
                 try:
                     expression = custom_regex[url_variable_count]
-
                 except IndexError:
                     expression = custom_regex[0]
-
-                except:
-                    raise
 
             else:
                 expression = DEFAULT_EXPRESSION
@@ -107,10 +106,17 @@ def django_url_preprocessor(url, root_url, custom_regex=None):
     django_url_joined = '/'.join(django_url_parts)
 
     # Final django-formatted url
-    if django_url_joined != '':
-        django_url = r'^{0}/$'.format(django_url_joined)
-    else:
-        # Handle empty string case
-        django_url = r'^$'
+    if protocol == 'http':
+        if django_url_joined != '':
+            django_url = r'^{0}/$'.format(django_url_joined)
+        else:
+            # Handle empty string case
+            django_url = r'^$'
+    elif protocol == 'websocket':
+        if django_url_joined != '':
+            django_url = r'^ws/{0}/{1}/$'.format(root_url, django_url_joined)
+        else:
+            # Handle empty string case
+            django_url = r'^ws/{0}/$'.format(root_url)
 
     return django_url

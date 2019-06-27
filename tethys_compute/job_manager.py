@@ -12,15 +12,16 @@ from abc import abstractmethod
 import logging
 import warnings
 
-from django.core.urlresolvers import reverse
 
-from tethys_compute.models import (TethysJob,
-                                   BasicJob,
-                                   CondorJob,
-                                   CondorWorkflow,
-                                   CondorWorkflowNode,
-                                   CondorWorkflowJobNode,
-                                   )
+from django.urls import reverse
+
+from tethys_compute.models.tethys_job import TethysJob
+from tethys_compute.models.basic_job import BasicJob
+from tethys_compute.models.dask.dask_job import DaskJob
+from tethys_compute.models.condor.condor_job import CondorJob
+from tethys_compute.models.condor.condor_workflow_node import CondorWorkflowNode
+from tethys_compute.models.condor.condor_workflow_job_node import CondorWorkflowJobNode
+from tethys_compute.models.condor.condor_workflow import CondorWorkflow
 
 log = logging.getLogger('tethys.tethys_compute.job_manager')
 
@@ -28,15 +29,16 @@ JOB_TYPES = {'CONDOR': CondorJob,
              'CONDORJOB': CondorJob,
              'CONDORWORKFLOW': CondorWorkflow,
              'BASIC': BasicJob,
+             'DASK': DaskJob,
              }
 
 
-class JobManager(object):
+class JobManager:
     """
     A manager for interacting with the Jobs database providing a simple interface creating and retrieving jobs.
 
     Note:
-        Each app creates its own instance of the JobManager. the ``get_job_manager`` method returns the app.
+        Each app creates its own instance of the JobManager. The ``get_job_manager`` method returns the app.
 
         ::
 
@@ -50,18 +52,11 @@ class JobManager(object):
         self.label = app.package
         self.app_workspace = app.get_app_workspace()
         self.job_templates = dict()
-        for template in app.job_templates():
-            # TODO remove when JobTemplate is made completely abstract
-            if template.__class__ == JobTemplate:
-                msg = 'The job template "{0}" in the app "{1}" uses JobTemplate directly. ' \
-                      'This is now depreciated. Please use the job type specific template {2} instead.'\
-                    .format(template.name, self.app.package, JOB_CAST[template.type].__name__)
-                warnings.warn(msg, DeprecationWarning)
-                template.__class__ = JOB_CAST[template.type]
-                template.__init__(name=template.name, parameters=template.parameters)
+        templates = app.job_templates() or list()
+        for template in templates:
             self.job_templates[template.name] = template
 
-    def create_empty_job(self, name, user, job_type, **kwargs):
+    def create_job(self, name, user, template_name=None, job_type=None, **kwargs):
         """
         Creates a new job from a JobTemplate.
 
@@ -74,14 +69,25 @@ class JobManager(object):
         Returns:
             A new job object of the type specified by job_type.
         """
-        assert issubclass(job_type, TethysJob)
+        if template_name is not None:
+            msg = 'The job template "{0}" was used in the "{1}" app. Using job templates is now deprecated.'.format(
+                template_name, self.app.package
+            )
+            warnings.warn(msg, DeprecationWarning)
+            print(msg)
+            return self.old_create_job(name, user, template_name, **kwargs)
+
+        # Allow the job class to be passed in as job_type.
+        if isinstance(job_type, str):
+            job_type = JOB_TYPES[job_type]
         user_workspace = self.app.get_user_workspace(user)
         kwrgs = dict(name=name, user=user, label=self.label, workspace=user_workspace.path)
         kwrgs.update(kwargs)
         job = job_type(**kwrgs)
+
         return job
 
-    def create_job(self, name, user, template_name, **kwargs):
+    def old_create_job(self, name, user, template_name, **kwargs):
         """
         Creates a new job from a JobTemplate.
 
@@ -96,7 +102,7 @@ class JobManager(object):
         """
         try:
             template = self.job_templates[template_name]
-        except KeyError as e:
+        except KeyError:
             raise KeyError('A job template with name %s was not defined' % (template_name,))
         user_workspace = self.app.get_user_workspace(user)
         kwrgs = dict(name=name, user=user, label=self.label, workspace=user_workspace.path)
@@ -136,7 +142,7 @@ class JobManager(object):
 
         Returns:
             A instance of a subclass of TethysJob if a job with job_id exists (and was created by user if the user argument is passed in).
-        """
+        """  # noqa: E501
         filters = filters or dict()
         filters['label'] = self.label
         filters['id'] = job_id
@@ -173,13 +179,13 @@ class JobManager(object):
             return value
 
         def replace_in_string(string_value):
-            new_string_value = re.sub('\$\(APP_WORKSPACE\)', app_workspace.path, string_value)
-            new_string_value = re.sub('\$\(USER_WORKSPACE\)', user_workspace.path, new_string_value)
+            new_string_value = re.sub(r'\$\(APP_WORKSPACE\)', app_workspace.path, string_value)
+            new_string_value = re.sub(r'\$\(USER_WORKSPACE\)', user_workspace.path, new_string_value)
             return new_string_value
 
         def replace_in_dict(dict_value):
             new_dict_value = dict()
-            for key, value in dict_value.iteritems():
+            for key, value in dict_value.items():
                 new_dict_value[key] = replace_in_value(value)
             return new_dict_value
 
@@ -191,21 +197,23 @@ class JobManager(object):
             new_tuple_value = tuple(replace_in_list(tuple_value))
             return new_tuple_value
 
-        TYPE_DICT = {str: replace_in_string,
-                     dict: replace_in_dict,
-                     list: replace_in_list,
-                     tuple: replace_in_tuple,
-                    }
+        TYPE_DICT = {
+            str: replace_in_string,
+            dict: replace_in_dict,
+            list: replace_in_list,
+            tuple: replace_in_tuple,
+        }
 
         new_parameters = dict()
-        for parameter, value in parameters.iteritems():
+        for parameter, value in parameters.items():
             new_value = replace_in_value(value)
             new_parameters[parameter] = new_value
         return new_parameters
 
 
-class JobTemplate(object):
+class JobTemplate:
     """
+    **DEPRECATED**
     A template from which to create a job.
 
     Args:
@@ -235,6 +243,7 @@ class JobTemplate(object):
 
 class BasicJobTemplate(JobTemplate):
     """
+    **DEPRECATED**
     A subclass of JobTemplate with the ``type`` argument set to BasicJob.
 
     Args:
@@ -242,24 +251,21 @@ class BasicJobTemplate(JobTemplate):
         parameters (dict): A dictionary of parameters to pass to the BasicJob constructor.
     """
     def __init__(self, name, parameters=None):
-        super(self.__class__, self).__init__(name, JOB_TYPES['BASIC'], parameters)
+        super().__init__(name, JOB_TYPES['BASIC'], parameters)
 
     def process_parameters(self):
         pass
 
 
-class CondorJobDescription(object):
+class CondorJobDescription:
     """
+    **DEPRECATED**
     Helper class for CondorJobTemplate and CondorWorkflowJobTemplates. Stores job attributes.
     """
     def __init__(self, condorpy_template_name=None, remote_input_files=None, **kwargs):
         self.remote_input_files = remote_input_files
-        self.attributes = dict()
-
-        if condorpy_template_name:
-            template = CondorJob.get_condorpy_template(condorpy_template_name)
-            self.attributes.update(template)
-        self.attributes.update(kwargs)
+        self.condorpy_template_name = condorpy_template_name
+        self.attributes = kwargs
 
     def process_attributes(self, app_workspace, user_workspace):
         self.__dict__ = JobManager._replace_workspaces(self.__dict__, app_workspace, user_workspace)
@@ -267,50 +273,30 @@ class CondorJobDescription(object):
 
 class CondorJobTemplate(JobTemplate):
     """
+    **DEPRECATED**
     A subclass of the JobTemplate with the ``type`` argument set to CondorJob.
 
     Args:
         name (str): Name to refer to the template.
-        parameters (dict, DEPRECATED): A dictionary of key-value pairs. Each Job type defines the possible parameters.
         job_description (CondorJobDescription): An object containing the attributes for the condorpy job.
         scheduler (Scheduler): An object containing the connection information to submit the condorpy job remotely.
     """
-    def __init__(self, name, parameters=None, job_description=None, scheduler=None, **kwargs):
-        parameters = parameters or dict()
+    def __init__(self, name, job_description, scheduler=None, **kwargs):
+        parameters = dict()
         parameters['scheduler'] = scheduler
-        # TODO job_description will be required when parameters is fully deprecated
-        if job_description:
-            parameters['remote_input_files'] = job_description.remote_input_files
-            parameters['attributes'] = job_description.attributes
-        else:
-            msg = 'The job_description argument was not defined in the job_template {0}. ' \
-                  'This argument will be required in version 1.5 of Tethys.'.format(name)
-            warnings.warn(msg, DeprecationWarning)
+        parameters['remote_input_files'] = job_description.remote_input_files
+        parameters['condorpy_template_name'] = job_description.condorpy_template_name
+        parameters['attributes'] = job_description.attributes
         parameters.update(kwargs)
-        super(self.__class__, self).__init__(name, JOB_TYPES['CONDORJOB'], parameters)
+        super().__init__(name, JOB_TYPES['CONDORJOB'], parameters)
 
     def process_parameters(self):
-        attributes = dict()
-
-        def update_attribute(attribute_name):
-            if attribute_name in self.parameters:
-                attribute = self.parameters.pop(attribute_name)
-                attributes[attribute_name] = attribute
-
-        if 'condorpy_template_name' in self.parameters:
-            template_name = self.parameters.pop('condorpy_template_name')
-            template = CondorJob.get_condorpy_template(template_name)
-            attributes.update(template)
-        if 'attributes' in self.parameters:
-            attributes.update(self.parameters.pop('attributes'))
-        for attribute_name in ['executable']:
-            update_attribute(attribute_name)
-
-        self.parameters['_attributes'] = attributes
+        pass
 
 
 class CondorWorkflowTemplate(JobTemplate):
     """
+    **DEPRECATED**
     A subclass of the JobTemplate with the ``type`` argument set to CondorWorkflow.
 
     Args:
@@ -319,14 +305,15 @@ class CondorWorkflowTemplate(JobTemplate):
         jobs (list): A list of CondorWorkflowJobTemplates.
         max_jobs (dict, optional): A dictionary of category-max_job pairs defining the maximum number of jobs that will run simultaneously from each category.
         config (str, optional): A path to a configuration file for the condorpy DAG.
-    """
-    def __init__(self, name, parameters=None, jobs=None, max_jobs=None, config=None, **kwargs):
+    """  # noqa: E501
+    def __init__(self, name, parameters=None, jobs=None, max_jobs=None, config='', **kwargs):
         parameters = parameters or dict()
+        jobs = jobs or list()
         self.node_templates = set(jobs)
-        parameters['_max_jobs'] = max_jobs
-        parameters['_config'] = config
+        parameters['max_jobs'] = max_jobs
+        parameters['config'] = config
         parameters.update(kwargs)
-        super(self.__class__, self).__init__(name, JOB_TYPES['CONDORWORKFLOW'], parameters)
+        super().__init__(name, JOB_TYPES['CONDORWORKFLOW'], parameters)
 
     def process_parameters(self):
         pass
@@ -334,7 +321,7 @@ class CondorWorkflowTemplate(JobTemplate):
         # add methods to workflow to get nodes by name.
 
     def create_job(self, app_workspace, user_workspace, **kwargs):
-        job = super(self.__class__, self).create_job(app_workspace, user_workspace, **kwargs)
+        job = super().create_job(app_workspace, user_workspace, **kwargs)
         job.save()
 
         node_dict = dict()
@@ -354,10 +341,6 @@ class CondorWorkflowTemplate(JobTemplate):
         # add code to link nodes
         return job
 
-# TODO remove when JobTemplate is made completely abstract
-JOB_CAST = {CondorJob: CondorJobTemplate,
-            BasicJob: BasicJobTemplate,
-            }
 
 NODE_TYPES = {'JOB': CondorWorkflowJobNode,
               # 'SUBWWORKFLOW': CondorWorkflowSubworkflowNode,
@@ -366,8 +349,9 @@ NODE_TYPES = {'JOB': CondorWorkflowJobNode,
               }
 
 
-class CondorWorkflowNodeBaseTemplate(object):
+class CondorWorkflowNodeBaseTemplate:
     """
+    **DEPRECATED**
     A template from which to create a job.
 
     Args:
@@ -398,39 +382,26 @@ class CondorWorkflowNodeBaseTemplate(object):
         kwargs = JobManager._replace_workspaces(self.parameters, app_workspace, user_workspace)
         if 'parents' in kwargs:
             kwargs.pop('parents')
-        node = self.type(name=self.name,
-                         workflow=workflow,
-                         **kwargs)
+        node = self.type(name=self.name, workflow=workflow, **kwargs)
         node.save()
         return node
 
 
 class CondorWorkflowJobTemplate(CondorWorkflowNodeBaseTemplate):
     """
+    **DEPRECATED**
     A subclass of the CondorWorkflowNodeBaseTemplate with the ``type`` argument set to CondorWorkflowJobNode.
 
     Args:
         name (str): Name to refer to the template.
         job_description (CondorJobDescription): An instance of `CondorJobDescription` containing of key-value pairs of job attributes.
-    """
+    """  # noqa: E501
     def __init__(self, name, job_description, **kwargs):
         parameters = kwargs
         parameters['remote_input_files'] = job_description.remote_input_files
-        parameters['_attributes'] = job_description.attributes
-        super(self.__class__, self).__init__(name, NODE_TYPES['JOB'], parameters)
+        parameters['condorpy_template_name'] = job_description.condorpy_template_name
+        parameters['attributes'] = job_description.attributes
+        super().__init__(name, NODE_TYPES['JOB'], parameters)
 
     def process_parameters(self):
         pass
-
-
-class CondorWorkflowSubworkflowTemplate(CondorWorkflowNodeBaseTemplate):
-    pass
-
-
-class CondorWorkflowDataJobTemplate(CondorWorkflowNodeBaseTemplate):
-    pass
-
-
-class CondorWorkflowFinalTemplate(CondorWorkflowNodeBaseTemplate):
-    pass
-

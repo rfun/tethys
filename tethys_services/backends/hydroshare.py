@@ -9,10 +9,8 @@
 """
 from datetime import datetime
 import time
-## tethys 1.4
-#from social.backends.oauth import BaseOAuth2
-# tethys 2.0
 from social_core.backends.oauth import BaseOAuth2
+
 
 class HydroShareOAuth2(BaseOAuth2):
     """
@@ -51,9 +49,7 @@ class HydroShareOAuth2(BaseOAuth2):
     set_expires_in_to = None
 
     def extra_data(self, user, uid, response, details=None, *args, **kwargs):
-        data = super(HydroShareOAuth2, self).extra_data(user, uid, response,
-                                                        details,
-                                                        *args, **kwargs)
+        data = super().extra_data(user, uid, response, details, *args, **kwargs)
 
         # testing purpose
         if self.set_expires_in_to is not None:
@@ -107,8 +103,7 @@ class HydroShareOAuth2(BaseOAuth2):
         Args:
             token (str): valid refresh token
         """
-
-        response = super(HydroShareOAuth2, self).refresh_token(token, *args, **kwargs)
+        response = super().refresh_token(token, *args, **kwargs)
 
         # testing purpose
         if self.set_expires_in_to is not None:

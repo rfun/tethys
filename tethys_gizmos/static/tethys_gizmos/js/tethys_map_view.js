@@ -6,10 +6,26 @@
  * LICENSE: BSD 2-Clause
  *****************************************************************************/
 
+// Extend Object prototype
+Object.byString = function(o, s) {
+    s = s.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
+    s = s.replace(/^\./, '');           // strip a leading dot
+    var a = s.split('.');
+
+    for (var i = 0, n = a.length; i < n; ++i) {
+        var k = a[i];
+        if (k in o) {
+            o = o[k];
+        } else {
+            return;
+        }
+    }
+    return o;
+}
+
 /*****************************************************************************
  *                      LIBRARY WRAPPER
  *****************************************************************************/
-
 var TETHYS_MAP_VIEW = (function() {
   // Wrap the library in a package function
   "use strict"; // And enable strict mode for this library
@@ -23,7 +39,8 @@ var TETHYS_MAP_VIEW = (function() {
       DEFAULT_SENSITIVITY = 2,                              // Used in selectable features
       DEFAULT_OUTPUT_FORMAT = 'GeoJSON',                    // The default output format
       GEOJSON_FORMAT = 'GeoJSON',                           // GeoJSON format type
-      WKT_FORMAT = 'WKT';                                   // Well know text format type
+      WKT_FORMAT = 'WKT',                                   // Well know text format type
+      DEFAULT_FORMAT = GEOJSON_FORMAT;                      // Default format type
 
   // Options Attributes
   var ATTRIBUTE_TABLE_ATTRIBUTE = 'data-attribute-table',   // HTML attribute containing the attribute table options
@@ -37,15 +54,18 @@ var TETHYS_MAP_VIEW = (function() {
       DISABLE_BASE_MAP_ATTRIBUTE = 'data-disable-base-map'; // HTML attribute containing the disable base map option
 
   // Objects
-  var public_interface,                                      // Object returned by the module
+  var public_interface,                                     // Object returned by the module
       m_drawing_interaction,                                // Drawing interaction used for drawing
       m_drawing_source,                                     // Drawing sources for drawing feature
+      m_snapping_source,                                    // Snapping source for drawing feature
       m_drawing_layer,                                      // Drawing layer for drawing feature
+      m_serialization_format,                               // Serialization format for serializing layer data
       m_drag_box_interaction,                               // Drag box interaction used for drawing rectangles
       m_drag_feature_interaction,                           // Drag feature interaction
       m_delete_feature_interaction,                         // Delete feature interaction
       m_modify_interaction,                                 // Modify interaction used for modifying features
       m_modify_select_interaction,                          // Select interaction for modify action
+      m_snap_interaction,                                   // Snap interaction for drawing layers
       m_select_interaction,                                 // Select interaction for main layers
       m_zoom_on_selection,                                  // Indicates whether to zoom on selection event
       m_legend_element,                                     // Stores the document element for the legend
@@ -57,7 +77,7 @@ var TETHYS_MAP_VIEW = (function() {
       m_lines_selected_layer,                               // The layer that contains the currently selected lines
       m_wms_feature_selection_changed_callbacks,            // An array of callback functions to execute whenever features change
       m_polygons_selected_layer,                            // The layer that contains the currently selected polygons
-      m_map;					                           // The map
+      m_map;					                            // The map
 
   // Selectors
   var m_map_target,                                         // Selector for the map container
@@ -87,8 +107,9 @@ var TETHYS_MAP_VIEW = (function() {
 
   // Drawing Methods
   var add_drawing_interaction, add_drag_box_interaction, add_drag_feature_interaction,
-      add_delete_feature_interaction, add_modify_interaction, add_feature_callback,
-      draw_end_callback, draw_change_callback, delete_feature_callback, switch_interaction;
+      add_delete_feature_interaction, add_modify_interaction, add_snap_interaction, add_feature_callback,
+      draw_end_callback, draw_change_callback, delete_feature_callback, change_feature_callback,
+      switch_interaction;
 
   // Feature Parser Methods
   var geojsonify, wellknowtextify;
@@ -107,7 +128,7 @@ var TETHYS_MAP_VIEW = (function() {
   var update_field;
 
   // Utility Methods
-  var is_defined, in_array, string_to_function;
+  var is_defined, in_array, string_to_function, build_ol_objects;
 
   // Class Declarations
   var DrawingControl, DragFeatureInteraction, DeleteFeatureInteraction;
@@ -119,25 +140,85 @@ var TETHYS_MAP_VIEW = (function() {
    * Initialization Methods
    ***********************************/
 
+  var base_map_labels = [];
   // Initialize the background map
   ol_base_map_init = function()
   {
     // Constants
-    var OPEN_STREET_MAP = 'OpenStreetMap',
-        BING = 'Bing',
-        MAP_QUEST = 'MapQuest';
+    var SUPPORTED_BASE_MAPS = {
+    'OpenStreetMap': {
+        source_class: ol.source.OSM,
+        default_source_options: {},
+        label_property: null,
+    },
+    'Bing': {
+        source_class: ol.source.BingMaps,
+        default_source_options: null,
+        label_property: 'imagerySet',
+    },
+    'Stamen': {
+        source_class: ol.source.Stamen,
+        default_source_options: {
+          layer: 'terrain',
+        },
+        label_property: 'layer',
+    },
+    'ESRI': {
+        source_class: function(options){
+            //ESRI_Imagery_World_2D (MapServer)
+            //ESRI_StreetMap_World_2D (MapServer)
+            //NatGeo_World_Map (MapServer)
+            //NGS_Topo_US_2D (MapServer)
+            //Ocean_Basemap (MapServer)
+            //USA_Topo_Maps (MapServer)
+            //World_Imagery (MapServer)
+            //World_Physical_Map (MapServer)
+            //World_Shaded_Relief (MapServer)
+            //World_Street_Map (MapServer)
+            //World_Terrain_Base (MapServer)
+            //World_Topo_Map (MapServer)
 
+            options.url = 'https://server.arcgisonline.com/ArcGIS/rest/services/' +
+                 options.layer + '/MapServer/tile/{z}/{y}/{x}';
+
+            return new ol.source.XYZ(options);
+        },
+        default_source_options: {
+            attributions: 'Tiles © <a href="https://services.arcgisonline.com/ArcGIS/' +
+                          'rest/services/World_Topo_Map/MapServer">ArcGIS</a>',
+            layer: 'World_Street_Map'
+        },
+        label_property: 'layer',
+    },
+    'CartoDB': {
+        source_class: function(options){
+            var style,  // 'light' or 'dark'. Default is 'light'
+                labels;  // true or false. Default is true.
+            style = is_defined(options.style) ? options.style : 'light';
+            labels = options.labels === false ? '_nolabels': '_all';
+
+            options.url = 'http://{1-4}.basemaps.cartocdn.com/' + style + labels + '/{z}/{x}/{y}.png'
+
+            return new ol.source.XYZ(options)
+        },
+        default_source_options: {
+            style: 'light',
+            labels: true,
+        },
+        label_property: 'style',
+    },
+    'XYZ': {
+        source_class: ol.source.XYZ,
+        default_source_options: {},
+        label_property: null,
+    },
+  }
     // Declarations
     var base_map_layer;
 
     if (is_defined(m_disable_base_map) && m_disable_base_map) {
       return;
     }
-
-    // Default base map
-    base_map_layer = new ol.layer.Tile({
-      source: new ol.source.OSM()
-    });
 
     if (is_defined(m_base_map_options)) {
       var base_map_options = Array.isArray(m_base_map_options) ? m_base_map_options : [m_base_map_options]
@@ -149,92 +230,64 @@ var TETHYS_MAP_VIEW = (function() {
           visible = true;
           first_flag = false;
         }
+
+        var base_map_layer_name,
+            base_map_layer_arguments;
+
         if (typeof base_map_option === 'string') {
-          if (base_map_option === OPEN_STREET_MAP) {
-            // Initialize default open street map layer
-            base_map_layer = new ol.layer.Tile({
-              source: new ol.source.OSM(),
-              visible: visible
-            });
-          } else if (base_map_option === BING) {
-            // Initialize default bing layer
+            base_map_layer_name = base_map_option;
+            base_map_layer_arguments = null;
+        }
+        else if (typeof base_map_option === 'object'){
+            base_map_layer_name = Object.getOwnPropertyNames(base_map_option)[0];
+            base_map_layer_arguments = base_map_option[base_map_layer_name];
+        }
 
-          } else if (base_map_option === MAP_QUEST) {
-            // Initialize default map quest layer
-            base_map_layer = new ol.layer.Tile({
-              source: new ol.source.MapQuest({layer: 'sat'}),
-              visible: visible
-            });
-          }
-          // Add legend attributes
-          base_map_layer.tethys_legend_title = 'Basemap: ' + base_map_option;
 
-        } else if (typeof base_map_option === 'object') {
+        if (Object.getOwnPropertyNames(SUPPORTED_BASE_MAPS).includes(base_map_layer_name)){
+            var base_map_metadata = SUPPORTED_BASE_MAPS[base_map_layer_name];
+            var LayerSource = base_map_metadata.source_class;
+            var source_options = base_map_layer_arguments ? base_map_layer_arguments : base_map_metadata.default_source_options;
 
-          if (OPEN_STREET_MAP in base_map_option) {
-            // Initialize custom open street map layer
-            base_map_layer = new ol.layer.Tile({
-              source: new ol.source.OSM(base_map_option[OPEN_STREET_MAP]),
-              visible: visible
-            });
-
-            if (base_map_option[OPEN_STREET_MAP].hasOwnProperty('label')) {
-              label = base_map_option[OPEN_STREET_MAP].label;
-            } else {
-              label = OPEN_STREET_MAP;
+            if(source_options){
+              base_map_layer = new ol.layer.Tile({
+                source: new LayerSource(source_options),
+                visible: visible
+              });
             }
+
+            label = base_map_layer_name;
+            if (source_options && source_options.hasOwnProperty('control_label')) {
+              label = source_options.control_label;
+            }
+            else if(base_map_metadata.label_property) {
+              label += '-' + source_options[base_map_metadata.label_property];
+            }
+
             // Add legend attributes
             base_map_layer.tethys_legend_title = 'Basemap: ' + label;
-
-          } else if (BING in base_map_option) {
-            // Initialize custom bing layer
-            base_map_layer = new ol.layer.Tile({
-              preload: Infinity,
-              source: new ol.source.BingMaps(base_map_option[BING]),
-              visible: visible
-            });
-
-            if (base_map_option[BING].hasOwnProperty('label')) {
-              label = base_map_option[BING].label;
-            } else {
-              label = BING + '-' + base_map_option[BING]['imagerySet'];
-            }
-            // Add legend attributes
-            base_map_layer.tethys_legend_title = 'Basemap: ' + label;
-
-          } else if (MAP_QUEST in base_map_option) {
-            // Initialize custom map quest layer
-            base_map_layer = new ol.layer.Tile({
-              source: new ol.source.MapQuest(base_map_option[MAP_QUEST]),
-              visible: visible
-            });
-
-            if (base_map_option[MAP_QUEST].hasOwnProperty('label')) {
-              label = base_map_option[MAP_QUEST].label;
-            } else {
-              label = MAP_QUEST;
-            }
-            // Add legend attributes
-            base_map_layer.tethys_legend_title = 'Basemap: ' + label;
-          }
+            base_map_labels.push(label);
         }
 
         // Add the base map to layers
         m_map.addLayer(base_map_layer);
       });
     }
+    else{
+        // Default base map
+        base_map_layer = new ol.layer.Tile({
+          source: new ol.source.OSM()
+        });
+        // Add the base map to layers
+        m_map.addLayer(base_map_layer);
+    }
   }
 
   // Initialize the base map switcher
   ol_base_map_switcher_init = function () {
-    // Constants
-    var OPEN_STREET_MAP = 'OpenStreetMap',
-        BING = 'Bing',
-        MAP_QUEST = 'MapQuest';
-
-    if (is_defined(m_base_map_options)) {
-      var base_map_options = Array.isArray(m_base_map_options) ? m_base_map_options : [m_base_map_options]
-      if (base_map_options.length >= 1) {
+    if (is_defined(base_map_labels)) {
+//      var base_map_options = Array.isArray(m_base_map_options) ? m_base_map_options : [m_base_map_options]
+      if (base_map_labels.length >= 1) {
         var $map_element = $('#' + m_map_target);
         var html = '<span class="dropdown" id="basemap_dropdown_container">' +
                    '<button class="btn btn-sm btn-default dropdown-toggle" type="button" id="basemap_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">' +
@@ -243,20 +296,7 @@ var TETHYS_MAP_VIEW = (function() {
                    '<ul class="dropdown-menu">' +
                    '<li class="basemap-option" value="None">None <span class="current-basemap-label"></span></li>';
         var first_flag = true;
-        base_map_options.forEach(function (base_map_option) {
-          var val;
-          if (typeof base_map_option === 'string') {
-            val = base_map_option;
-          } else {
-            if (OPEN_STREET_MAP in base_map_option) {
-              val = base_map_option[OPEN_STREET_MAP].hasOwnProperty('label') ? base_map_option[OPEN_STREET_MAP].label : OPEN_STREET_MAP;
-            } else if (BING in base_map_option) {
-              val = base_map_option[BING].hasOwnProperty('label') ? base_map_option[BING].label : BING + '-' + base_map_option[BING]['imagerySet'];
-            } else if (MAP_QUEST in base_map_option) {
-              val = base_map_option[MAP_QUEST].hasOwnProperty('label') ? base_map_option[MAP_QUEST].label : MAP_QUEST;
-            }
-          }
-
+        base_map_labels.forEach(function (val) {
           if (first_flag) {
             html += '<li class="basemap-option selected-basemap-option" value="' + val + '">' + val + ' <span class="current-basemap-label"> (Current)</span></li>';
             first_flag = false;
@@ -269,15 +309,6 @@ var TETHYS_MAP_VIEW = (function() {
 
         $(html).insertBefore($map_element);
 
-//        var offset = $map_element.position();
-//
-//        $('#basemap_dropdown_container').css({
-//          'position': 'relative',
-//          'top': offset.top + 40 + 'px',
-//          'left': offset.left + 52 + 'px',
-//          'z-index': 1000
-//        });
-
         // The function fired when a different basemap is selected from the drop-down
         var change_basemap = function () {
           var selected_base_map = $(this).attr('value');
@@ -289,8 +320,10 @@ var TETHYS_MAP_VIEW = (function() {
           $($(this).children()[0]).text(' (Current)');
 
           m_map.getLayers().forEach(function (layer) {
-            if (layer.tethys_legend_title.indexOf('Basemap') !== -1) {
+            if (layer.hasOwnProperty('tethys_legend_title')) {
+              if (layer.tethys_legend_title.indexOf('Basemap') !== -1) {
                 layer.setVisible(layer.tethys_legend_title === base_map_label);
+              }
             }
           });
         };
@@ -386,6 +419,7 @@ var TETHYS_MAP_VIEW = (function() {
     // Constants
 ////////////////////////////////////////// Color of annotation tools and Button Spacing ////////////////////////////////
     var VALID_GEOMETRY_TYPES = ['Polygon', 'Point', 'LineString', 'Box'];
+    var VALID_CONTROL_TYPES = VALID_GEOMETRY_TYPES.concat(['Pan', 'Move', 'Delete', 'Modify']);
     var INITIAL_FILL_COLOR = 'rgba(255, 255, 255, 0.2)',
         INITIAL_STROKE_COLOR = '#ffcc33',
         INITIAL_POINT_FILL_COLOR = '#ffcc33',
@@ -396,15 +430,68 @@ var TETHYS_MAP_VIEW = (function() {
         button_left_offset = 136,
         initial_drawing_mode = 'Point';
 
-    if (is_defined(m_draw_options)) {
+    var initial_features_obj, projection, format, proj_format, features = [];
 
+    if (is_defined(m_draw_options)) {
       // Customize styles
       INITIAL_FILL_COLOR = m_draw_options.fill_color,
       INITIAL_STROKE_COLOR = m_draw_options.line_color,
       INITIAL_POINT_FILL_COLOR = m_draw_options.point_color,
 
+      initial_features_obj = m_draw_options.initial_features;
+
       // Initialize the drawing layer
       m_drawing_source = new ol.source.Vector({wrapX: false});
+
+      // Determine serialization format
+      m_serialization_format = DEFAULT_FORMAT;
+
+      if (is_defined(m_draw_options.output_format)) {
+        m_serialization_format = m_draw_options.output_format;
+      }
+
+      // Load initial features
+      if (is_defined(initial_features_obj)) {
+        // Determine projection
+        proj_format = new ol.format.GeoJSON();
+        projection = proj_format.readProjection(initial_features_obj);
+
+        if (m_serialization_format === GEOJSON_FORMAT) {
+          format = new ol.format.GeoJSON();
+
+          // Read the features
+          if (is_defined(projection)) {
+            features = format.readFeatures(
+              initial_features_obj,
+              {'dataProjection': projection, 'featureProjection': DEFAULT_PROJECTION}
+            );
+          } else {
+            features = format.readFeatures(initial_features_obj);
+          }
+        } else {
+          format = new ol.format.WKT();
+
+          $.each(initial_features_obj.features, function(index, feature) {
+            var current_feature;
+            if (is_defined(projection)) {
+              current_feature = format.readFeatures(
+                feature.wkt,
+                {'dataProjection': projection, 'featureProjection': DEFAULT_PROJECTION}
+              );
+            } else {
+              current_feature = format.readFeatures(feature.wkt);
+            }
+
+            features = features.concat(current_feature);
+          });
+        }
+
+        // Add features to drawing layer source
+        m_drawing_source.addFeatures(features);
+
+        // Sync text field with initial features
+        update_field();
+      }
 
       m_drawing_layer = new ol.layer.Vector({
         source: m_drawing_source,
@@ -425,23 +512,99 @@ var TETHYS_MAP_VIEW = (function() {
         })
       });
 
-      // Add drawing layer legend properites
-      m_drawing_layer.tethys_legend_title = 'Drawing Layer';
+      // Add drawing layer legend properties
+      m_drawing_layer.tethys_legend_title = m_draw_options.legend_title;
       m_drawing_layer.tethys_editable = true;
+      m_drawing_layer.tethys_data = m_draw_options.data;
 
       // Add drawing layer to the map
       m_map.addLayer(m_drawing_layer);
 
+      // Initialize drawing layer selection
+      if (m_draw_options.feature_selection) {
+        m_selectable_layers.push(m_drawing_layer);
+      }
+
+      // Define snapping target source
+      m_snapping_source = m_drawing_source;
+      var snapping_layer = m_draw_options.snapping_layer;
+      var properties = Object.keys(snapping_layer);
+
+      if (properties.length > 0) {
+        var match_property = properties[0];
+        var match_value = snapping_layer[match_property];
+
+        m_map.getLayers().forEach(function(layer, index, layers) {
+          var val = Object.byString(layer, match_property);
+
+          if (val == match_value) {
+            var source, params, layer, wms_url, wfs_url, wfs_url_func;
+            source = layer.getSource();
+
+            // Only do the voodoo if the source is a WMS type
+            // With the goal to set the m_snapping_source
+            if (source instanceof ol.source.ImageWMS || source instanceof ol.source.TileWMS) {
+                // Get data from WMS source needed to make a WFS source
+                params = source.getParams();
+                layer = params.LAYERS;
+                wms_url = source.getUrls()[0];
+
+                // Convert the wfs url to a wms url
+                wfs_url = wms_url.replace('wms', 'wfs');
+
+                // Define the function used to load the WFS feature data
+                wfs_url_func = function(extent) {
+                    return wfs_url + '?service=WFS&' +
+                        'version=1.1.0&' +
+                        'request=GetFeature&' +
+                        'typename=' + layer + '&' +
+                        'outputFormat=application/json&' +
+                        'srsname=EPSG:3857&' +
+                        'bbox=' + extent.join(',') + ',EPSG:3857';
+                }
+
+                // Create a new vector source for the WFS version of the WMS layer
+                m_snapping_source = new ol.source.Vector({
+                    format: new ol.format.GeoJSON(),
+                    url: wfs_url_func,
+                    strategy: ol.loadingstrategy.bbox
+                });
+
+                // Add a new layer to contain the snapping vector layer, but style it to be transparent
+                var snapping_layer = new ol.layer.Vector({
+                    source: m_snapping_source,
+                    style: new ol.style.Style({
+                        stroke: new ol.style.Stroke({
+                            color: 'rgba(0,0,0,0)',
+                            width: 2
+                        })
+                    })
+                });
+                m_map.addLayer(snapping_layer);
+            }
+            else if (source instanceof ol.source.Vector) {
+                m_snapping_source = source;
+            }
+            else {
+                console.log("Invalid source type. Supported source types for a given layer are Vector or ImageWMS or TileWMS.");
+            }
+            //Don't continue searching for the snapping layer. Break out of the loop
+            return false;
+          }
+        });
+      }
+
       // Bind event
       m_drawing_source.on('addfeature', add_feature_callback);
 	  m_drawing_source.on('removefeature', delete_feature_callback);
+	  m_drawing_source.on('change', change_feature_callback);
 
       // Set initial drawing interaction
       if (is_defined(m_draw_options.initial) &&
-          in_array(m_draw_options.initial, VALID_GEOMETRY_TYPES) &&
+          in_array(m_draw_options.initial, VALID_CONTROL_TYPES) &&
           is_defined(m_draw_options.controls) &&
-          in_array(m_draw_options.initial, m_draw_options.controls)
-      ) {
+          in_array(m_draw_options.initial, m_draw_options.controls))
+      {
         initial_drawing_mode = m_draw_options.initial;
       }
 
@@ -456,7 +619,7 @@ var TETHYS_MAP_VIEW = (function() {
         pan_control = new DrawingControl({
           control_type: 'Pan',
           left_offset: button_left_offset.toString() + BUTTON_OFFSET_UNITS,
-          active: false,
+          active: initial_drawing_mode === 'Pan',
           control_id: "tethys_pan"
         });
 
@@ -470,7 +633,7 @@ var TETHYS_MAP_VIEW = (function() {
           modify_control = new DrawingControl({
             control_type: 'Modify',
             left_offset: button_left_offset.toString() + BUTTON_OFFSET_UNITS,
-            active: false,
+            active: initial_drawing_mode === 'Modify',
             control_id: "tethys_modify"
           });
 
@@ -486,7 +649,7 @@ var TETHYS_MAP_VIEW = (function() {
           modify_control = new DrawingControl({
             control_type: 'Delete',
             left_offset: button_left_offset.toString() + BUTTON_OFFSET_UNITS,
-            active: false,
+            active: initial_drawing_mode === 'Delete',
             control_id: "tethys_delete"
           });
 
@@ -501,9 +664,9 @@ var TETHYS_MAP_VIEW = (function() {
 
           // Add drag feature control next
           drag_feature_control = new DrawingControl({
-            control_type: 'Drag',
+            control_type: 'Move',
             left_offset: button_left_offset.toString() + BUTTON_OFFSET_UNITS,
-            active: false,
+            active: initial_drawing_mode === 'Move',
             control_id: "tethys_move"
           });
 
@@ -511,6 +674,7 @@ var TETHYS_MAP_VIEW = (function() {
           m_map.addControl(drag_feature_control);
         }
 
+        // Add geometry controls
         for (var i = 0; i < draw_controls.length; i++) {
 
           var current_control_type = draw_controls[i];
@@ -578,34 +742,42 @@ var TETHYS_MAP_VIEW = (function() {
             layer, Source, current_layer_layer_options;
 
         current_layer = m_layers_options[i];
+
         // Extract layer_options
         if ('layer_options' in current_layer && current_layer.layer_options) {
+          // Process style layer options
           if ('style' in current_layer.layer_options) {
-            var style_options = current_layer.layer_options.style;
-            if ('image' in style_options) {
-                var image_options = current_layer.layer_options.style.image;
-                for (var ikey in image_options) {
-                    if (image_options.hasOwnProperty(ikey)) {
-                        if (ikey in STYLE_IMAGE_MAP) {
-                            for (var ckey in image_options[ikey]) {
-                                if (image_options[ikey].hasOwnProperty(ckey)) {
-                                    if (ckey in STYLE_MAP)
-                                    {
-                                        current_layer.layer_options.style.image[ikey][ckey] = new STYLE_MAP[ckey](image_options[ikey][ckey]);
-                                    }
-                                }
-                            }
-                            current_layer.layer_options.style.image = new STYLE_IMAGE_MAP[ikey](image_options[ikey]);
-                        }
-                    }
-                }
-            }
-            current_layer.layer_options.style = new ol.style.Style(current_layer.layer_options.style);
+            var style = current_layer.layer_options.style;
+
+            // Build the openlayers objects
+            var built_style = build_ol_objects(style, {});
+
+            // Overwrite style layer option with built objects
+            current_layer.layer_options.style = built_style;
           }
+
+          // Process style_map layer option
+          if ('style_map' in current_layer.layer_options) {
+            var style_map = current_layer.layer_options.style_map;
+            delete current_layer.layer_options.style_map;
+
+            // Build the openlayers objects
+            var built_style_map = build_ol_objects(style_map, {});
+
+            // Create the style map function
+            var style_map_function = function(feature) {
+                return built_style_map[feature.getGeometry().getType()];
+            };
+
+            current_layer.layer_options['style'] = style_map_function;
+          }
+
+          // Get updated layer options
           current_layer_layer_options = current_layer.layer_options;
         } else {
           current_layer_layer_options = {};
         }
+
         // Tile layer case
         if (in_array(current_layer.source, TILE_SOURCES)) {
           var resolutions, source_options, tile_grid;
@@ -965,11 +1137,11 @@ var TETHYS_MAP_VIEW = (function() {
     // Initialize WMS Selectable Features
     ol_wms_feature_selection_init();
 
-    // Initialize Selectable Features
-    ol_selection_interaction_init();
-
     // Initialize Drawing
     ol_drawing_init();
+
+    // Initialize Selectable Features
+    ol_selection_interaction_init();
 
     // Initialize View
     ol_view_init();
@@ -978,7 +1150,7 @@ var TETHYS_MAP_VIEW = (function() {
     ol_legend_init();
 
     // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip()
+    $('[data-toggle="tooltip"]').tooltip();
   };
 
   /***********************************
@@ -1047,6 +1219,14 @@ var TETHYS_MAP_VIEW = (function() {
     m_map.addInteraction(m_delete_feature_interaction);
   };
 
+  add_snap_interaction = function() {
+    // Add snap interaction
+    var snap_options = {source: m_snapping_source};
+    snap_options = Object.assign(snap_options, m_draw_options.snapping_options);
+    m_snap_interaction = new ol.interaction.Snap(snap_options);
+    m_map.addInteraction(m_snap_interaction);
+  };
+
   add_modify_interaction = function() {
     // Modify interaction works in conjunction with a selection interaction
     var selected_features;
@@ -1086,6 +1266,11 @@ var TETHYS_MAP_VIEW = (function() {
   	update_field();
   };
 
+  change_feature_callback = function(feature){
+  	// Update the hidden text field
+  	update_field();
+  };
+
   draw_end_callback = function(feature) {
     // Initialize the feature properties
     initialize_feature_properties(feature);
@@ -1111,13 +1296,14 @@ var TETHYS_MAP_VIEW = (function() {
     m_map.removeInteraction(m_drag_feature_interaction);
 	m_map.removeInteraction(m_delete_feature_interaction);
     m_map.removeInteraction(m_drag_box_interaction);
+    m_map.removeInteraction(m_snap_interaction);
 
     // Set appropriate drawing interaction
     if (interaction_type === 'Pan') {
       // Do nothing
     } else if (interaction_type === 'Modify') {
       add_modify_interaction();
-    } else if (interaction_type === 'Drag') {
+    } else if (interaction_type === 'Move') {
       add_drag_feature_interaction();
   	} else if (interaction_type === 'Delete') {
       add_delete_feature_interaction();
@@ -1125,6 +1311,10 @@ var TETHYS_MAP_VIEW = (function() {
       add_drag_box_interaction();
     } else {
       add_drawing_interaction(interaction_type);
+    }
+
+    if (m_draw_options.snapping_enabled) {
+        add_snap_interaction();
     }
   };
 
@@ -1137,6 +1327,11 @@ var TETHYS_MAP_VIEW = (function() {
 
     // Get the features
     features = m_drawing_source.getFeatures();
+
+    if (features.length == 0)
+    {
+        return "";
+    }
 
     // Setup geometry collection
     geometry_collection = {'type': 'GeometryCollection',
@@ -1189,6 +1384,11 @@ var TETHYS_MAP_VIEW = (function() {
 
     // Get the features
     features = m_drawing_source.getFeatures();
+
+    if (features.length == 0)
+    {
+        return "";
+    }
 
     // Setup geometry collection
     geometry_collection = {'type': 'GeometryCollection',
@@ -1292,7 +1492,8 @@ var TETHYS_MAP_VIEW = (function() {
 
   initialize_feature_properties = function(feature) {
     // Set the id
-    feature.setId(generate_feature_id());
+    let feature_id = 'drawing_layer.' + generate_feature_id();
+    feature.setId(feature_id);
 
     // Initialize with properties and defaults provided
     //feature.setProperties({
@@ -1374,23 +1575,25 @@ var TETHYS_MAP_VIEW = (function() {
                     '</ul>' +
                     '</div>';
         } else if (legend_class.LEGEND_TYPE === "mvlegend") {
-            html += '<span class="legend-class-symbol"><svg>';
+            html += '<span class="legend-class-symbol">';
             if (legend_class.type === legend_class.POINT_TYPE) {
-              html += '<circle cx="10" cy="10" r="25%" fill="' + legend_class.fill + '"/>';
+              html += '<svg><circle cx="10" cy="10" r="25%" fill="' + legend_class.fill + '"/></svg>';
             }
 
             else if (legend_class.type === legend_class.LINE_TYPE) {
-              html += '<polyline points="19 1, 1 6, 19 14, 1 19" stroke="' + legend_class.stroke + '" fill="transparent" stroke-width="2"/>';
+              html += '<svg><polyline points="19 1, 1 6, 19 14, 1 19" stroke="' + legend_class.stroke + '" fill="transparent" stroke-width="2"/></svg>';
             }
 
             else if (legend_class.type === legend_class.POLYGON_TYPE) {
-              html += '<polygon points="1 10, 5 3, 13 1, 19 9, 14 19, 9 13" stroke="' + legend_class.stroke + '" fill="' + legend_class.fill + '" stroke-width="2"/>';
+              html += '<svg><polygon points="1 10, 5 3, 13 1, 19 9, 14 19, 9 13" stroke="' + legend_class.stroke + '" fill="' + legend_class.fill + '" stroke-width="2"/></svg>';
             }
             else if (legend_class.type === legend_class.RASTER_TYPE) {
-              //TODO: ADD IMPLEMENTATION FOR RASTER
+                for (var j = 0; j < legend_class.ramp.length; j++) {
+                    html += '<svg><rect width="20" height="20" fill=' + legend_class.ramp[j] + '/></svg>';
+                }
             }
 
-            html += '</svg></span><span class="legend-class-value">' + legend_class.value + '</span>';
+            html += '</span><span class="legend-class-value">' + legend_class.value + '</span>';
         }
       }
 
@@ -1744,7 +1947,7 @@ var TETHYS_MAP_VIEW = (function() {
       bbox = bbox.replace('{{maxy}}', y + tolerance);
       cql_filter = '&CQL_FILTER=BBOX(' + geometry_attribute + '%2C' + bbox + '%2C%27EPSG%3A3857%27)';
       layer_params = source.getParams();
-      layer_name = layer_params.LAYERS;
+      layer_name = layer_params.LAYERS.replace('_group', '');
       layer_view_params = layer_params.VIEWPARAMS ? layer_params.VIEWPARAMS : '';
 
       if (source instanceof ol.source.ImageWMS) {
@@ -1833,7 +2036,7 @@ var TETHYS_MAP_VIEW = (function() {
               + '?SERVICE=wfs'
               + '&VERSION=2.0.0'
               + '&REQUEST=GetFeature'
-              + '&TYPENAMES=' + layer_name
+              + '&TYPENAMES=' + layer_name.replace('_group', '')
               + '&VIEWPARAMS=' + layer_view_params
               + '&OUTPUTFORMAT=text/javascript'
               + '&FORMAT_OPTIONS=callback:TETHYS_MAP_VIEW.jsonResponseHandler;'
@@ -1859,15 +2062,14 @@ var TETHYS_MAP_VIEW = (function() {
     $textarea = $('#' + m_textarea_target);
     textarea_string = '';
 
-    // Default output format to GeoJSON
-    if (is_defined(m_draw_options.output_format)) {
-      if (m_draw_options.output_format === WKT_FORMAT) {
-        textarea_string = JSON.stringify(wellknowtextify());
-      } else {
-        textarea_string = JSON.stringify(geojsonify());
-      }
+    if (m_serialization_format === GEOJSON_FORMAT) {
+        textarea_string = geojsonify();
     } else {
-      textarea_string = JSON.stringify(geojsonify());
+        textarea_string = wellknowtextify();
+    }
+
+    if (textarea_string !== '') {
+        textarea_string = JSON.stringify(textarea_string);
     }
 
     // Set value of textarea
@@ -1884,7 +2086,7 @@ var TETHYS_MAP_VIEW = (function() {
 
   is_defined = function(variable)
   {
-    return !!(typeof variable !== typeof undefined && variable !== false);
+    return !!(typeof variable !== typeof undefined && variable !== false && variable !== null);
   };
 
   // Instantiate a function from a string
@@ -1902,6 +2104,42 @@ var TETHYS_MAP_VIEW = (function() {
     }
 
     return  fn;
+  };
+
+  build_ol_objects = function(obj, stack) {
+    for (var property in obj) {
+      if (!obj.hasOwnProperty(property)) {
+          continue;
+      }
+
+      if (property.includes('ol.')) {
+        var constructor_options = obj[property];
+        var ol_import = property.split('.');
+        var the_class = null;
+        try {
+          $.each(ol_import, function(index, module) {
+            if (module == 'ol') {
+              the_class = window[module];
+            }
+            else {
+              the_class = the_class[module];
+            }
+          });
+          return new the_class(build_ol_objects(constructor_options, {}));
+        } catch(err) {
+            console.error('Invalid OpenLayers class: ' + property);
+            return {};
+        }
+      } else {
+        if (obj[property] instanceof Object) {
+          stack[property] = build_ol_objects(obj[property], {});
+        }
+        else {
+          stack[property] = obj[property];
+        }
+      }
+    }
+    return stack;
   };
 
   /***********************************

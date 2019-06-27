@@ -264,9 +264,14 @@ g. Add **Persistent Store Service** to Tethys Portal:
     d. Click on the **Add Persistent Store Service** button.
     e. Give the **Persistent Store Service** a name and fill out the connection information.
 
+.. figure:: ../../images/tutorial/advanced/Persistent_Store_Service.png
+    :width: 600px
+    :align: center
+
 .. important::
 
     The username and password for the persistent store service must be a superuser to use spatial persistent stores.
+    Note that this is set by default in the installation to: username: "tethys_super", password: "pass".
 
 h. Assign **Persistent Store Service** to Dam Inventory App:
 
@@ -276,6 +281,10 @@ h. Assign **Persistent Store Service** to Dam Inventory App:
     d. Select the **Dam Inventory** link.
     e. Scroll down to the **Persistent Store Database Settings** section.
     f. Assign the **Persistent Store Service** that you created in Step 4 to the **primary_db**.
+
+.. figure:: ../../images/tutorial/advanced/Assign_Persistent_Store_Service.png
+    :width: 600px
+    :align: center
 
 i. Execute **syncstores** command to initialize Persistent Store database:
 
@@ -319,8 +328,8 @@ a. Modify the `add_dam` controller, such that it won't add a new dam if the `max
                 session = Session()
                 num_dams = session.query(Dam).count()
 
-                # Only add the dam if we have not exceed max_dams
-                if num_dams < max_dams:
+                # Only add the dam if custom setting doesn't exist or we have not exceed max_dams
+                if not max_dams or num_dams < max_dams:
                     add_new_dam(location=location, name=name, owner=owner, river=river, date_built=date_built)
                 else:
                     messages.warning(request, 'Unable to add dam "{0}", because the inventory is full.'.format(name))
@@ -606,10 +615,6 @@ g. Log in each user. If the permission has been applied correctly, "diviewer" sh
 
     For more details on Permissions, see: :doc:`../../tethys_sdk/permissions`.
 
-.. todo::
-
-    Split into another tutorial here?
-
 5. Persistent Store Related Tables
 ==================================
 
@@ -689,8 +694,8 @@ a. New Model function
         hydro_points = []
 
         try:
-
             for line in hydrograph_file:
+                line = line.decode('utf-8')
                 sline = line.split(',')
 
                 try:
@@ -900,6 +905,8 @@ d. Update navigation
       <li class="{% if request.path == assign_hydrograph_url %}active{% endif %}"><a href="{{ assign_hydrograph_url }}">Assign Hydrograph</a></li>
     {% endblock %}
 
+.. _sample_hydrographs:
+
 f. Test upload with these files:
 
     :download:`Sample Hydrograph CSVs <./hydrographs.zip>`
@@ -1026,15 +1033,75 @@ d. Add UrlMap with URL Variable
 
             return url_maps
 
-e. Modify ``list_dams`` controller:
+e. Add ``get_hydrograph`` helper function to ``model.py``
 
 ::
 
-    .. todo::
+    def get_hydrograph(dam_id):
+    """
+    Get hydrograph id from dam id.
+    """
+        Session = app.get_persistent_store_database('primary_db', as_sessionmaker=True)
+        session = Session()
 
-        Find a way to get links into data tables view
+        # Query if hydrograph exists for dam
+        hydrograph = session.query(Hydrograph).filter_by(dam_id=dam_id).first()
+        session.close()
 
+        if hydrograph:
+            return hydrograph.id
+        else:
+            return None
 
+f. Modify ``list_dams`` controller (and add needed imports):
+
+::
+
+    from django.utils.html import format_html
+    from .model import add_new_dam, get_all_dams, Dam, assign_hydrograph_to_dam, get_hydrograph  #  added get_hydrograph function created in previous step
+    ...
+
+    @login_required()
+    def list_dams(request):
+        """
+        Show all dams in a table view.
+        """
+        dams = get_all_dams()
+        table_rows = []
+
+        for dam in dams:
+            hydrograph_id = get_hydrograph(dam.id)
+            if hydrograph_id:
+                url = reverse('dam_inventory:hydrograph', kwargs={'hydrograph_id': hydrograph_id})
+                dam_hydrograph = format_html('<a class="btn btn-primary" href="{}">Hydrograph Plot</a>'.format(url))
+            else:
+                dam_hydrograph = format_html('<a class="btn btn-primary disabled" title="No hydrograph assigned" '
+                                             'style="pointer-events: auto;">Hydrograph Plot</a>')
+
+            table_rows.append(
+                (
+                    dam.name, dam.owner,
+                    dam.river, dam.date_built,
+                    dam_hydrograph
+                )
+            )
+
+        dams_table = DataTableView(
+            column_names=('Name', 'Owner', 'River', 'Date Built', 'Hydrograph'),
+            rows=table_rows,
+            searching=False,
+            orderClasses=False,
+            lengthMenu=[[10, 25, 50, -1], [10, 25, 50, "All"]],
+        )
+
+        context = {
+            'dams_table': dams_table,
+            'can_add_dams': has_permission(request, 'add_dams')
+        }
+
+        return render(request, 'dam_inventory/list_dams.html', context)
+
+g. Test by going to the Dams page and clicking on the new ``Hydrograph Plot`` button in the table for a dam that has already been assigned a hydrograph.
 
 8. Dynamic Hydrograph Plot in Pop-Ups
 =====================================

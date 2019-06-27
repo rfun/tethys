@@ -60,16 +60,16 @@ class TextInput(TethysGizmoOptions):
         {% gizmo text_input %}
         {% gizmo text_error_input %}
 
-    """
+    """  # noqa: E501
     gizmo_name = "text_input"
-    
+
     def __init__(self, name, display_text='', initial='', placeholder='', prepend='', append='', icon_prepend='',
                  icon_append='', disabled=False, error='', attributes={}, classes=''):
         """
         Constructor
         """
         # Initialize super class
-        super(TextInput, self).__init__(attributes=attributes, classes=classes)
+        super().__init__(attributes=attributes, classes=classes)
 
         self.name = name
         self.display_text = display_text

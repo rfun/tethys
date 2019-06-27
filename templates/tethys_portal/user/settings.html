@@ -13,6 +13,10 @@
     body {
       background: {{ site_globals.background_color|default:'#efefef' }};
     }
+
+    a:hover {
+      cursor:pointer;
+    }
   </style>
 {% endblock %}
 
@@ -85,6 +89,8 @@
                   <a href="{% url 'user:disconnect' user.username 'hydroshare_beta' association.id %}"><span class="label label-hydroshare">Disconnect HydroShare-beta</span></a>
                 {% elif 'hydroshare_playground' == association.provider %}
                   <a href="{% url 'user:disconnect' user.username 'hydroshare_playground' association.id %}"><span class="label label-hydroshare">Disconnect HydroShare-playground</span></a>
+                {% else %}
+                  <a href="{% url 'user:disconnect' user.username association.provider association.id %}"><span class="label label-custom-oauth">Disconnect {{ association.provider }}</span></a>
                 {% endif %}
               {% endfor %}
             {% else %}
@@ -101,6 +107,8 @@
                   <span class="label label-hydroshare">HydroShare-beta</span>
                 {% elif 'hydroshare_playground' == backend.provider %}
                   <span class="label label-hydroshare">HydroShare-playground</span>
+                {% else %}
+                  <span class="label label-custom-oauth">{{ backend.provider }}</span>
                 {% endif %}
               {% endfor %}
             {% endif %}
@@ -129,6 +137,8 @@
                 <a href="{% url 'social:begin' 'hydroshare_beta' %}?next={{ request.path }}"><span class="label label-hydroshare">Connect HydroShare-beta</span></a>
               {% elif 'hydroshare_playground' == backend %}
                 <a href="{% url 'social:begin' 'hydroshare_playground' %}?next={{ request.path }}"><span class="label label-hydroshare">Connect HydroShare-playground</span></a>
+              {% else %}
+                <a href="{% url 'social:begin' backend %}?next={{ request.path }}"><span class="label label-custom-oauth">Connect {{ backend }}</span></a>
               {% endif %}
             {% endfor %}
           </div>
@@ -143,7 +153,7 @@
 {% endblock %}
 
 {% block account_parameters %}
-  <div class="profile-section last">
+  <div class="profile-section">
     <div class="row">
       <div class="col-md-2 col-md-offset-2 profile-section-header">
         <h3>Account</h3>
@@ -159,6 +169,21 @@
   </div>
 {% endblock %}
 
+{% block workspace_management %}
+<div class="profile-section last">
+  <div class="row">
+    <div class="col-md-2 col-md-offset-2 profile-section-header">
+      <h3>Workspace</h3>
+    </div>
+    <div class="col-md-8 profile-parameters">
+      <ul>
+        <li><span class="parameter">Storage Summary:</span><span class="value">{{ current_use }} of {{ quota|default:"&#8734;" }}</span></li>
+        <li><span class="parameter">Manage Storage:</span><span class="value button"><a class="btn btn-default btn-sm" href="{% url 'user:manage_storage' user.username %}">Manage Storage</a></span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
 
 {% block profile_sections %}
   <form role="form" class="form-horizontal" method="post">
@@ -180,5 +205,3 @@
     </div>
   </form>
 {% endblock %}
-
-

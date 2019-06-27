@@ -8,20 +8,35 @@
 ********************************************************************************
 """
 from django.contrib import admin
-from django.forms import Textarea
-from django.db import models
-from tethys_compute.models import Scheduler, TethysJob
-# Register your models here.
+from tethys_compute.models import TethysJob
+from tethys_compute.models.condor.condor_scheduler import CondorScheduler
+from tethys_compute.models.dask.dask_scheduler import DaskScheduler
 
 
-@admin.register(Scheduler)
-class SchedulerAdmin(admin.ModelAdmin):
+@admin.register(DaskScheduler)
+class DaskSchedulerAdmin(admin.ModelAdmin):
+    list_display = ['name', 'host', 'timeout', 'heartbeat_interval', 'append_link']
+    list_display_links = ['name', 'append_link']
+
+    def append_link(self, obj):
+        if obj.dashboard:
+            dask_status_link = '<a href="%s" target="_blank">%s</a>' % ('../../dask-dashboard/status/' + str(obj.id),
+                                                                        'Launch DashBoard')
+            return dask_status_link
+
+    append_link.allow_tags = True
+    append_link.short_description = 'dashboard'
+
+
+@admin.register(CondorScheduler)
+class CondorSchedulerAdmin(admin.ModelAdmin):
     list_display = ['name', 'host', 'username', 'password', 'private_key_path', 'private_key_pass']
 
 
 @admin.register(TethysJob)
 class JobAdmin(admin.ModelAdmin):
-    list_display = ['name', 'description', 'label', 'user', 'creation_time', 'execute_time', 'completion_time', 'status']
+    list_display = ['name', 'description', 'label', 'user', 'creation_time', 'execute_time', 'completion_time',
+                    'status']
     list_display_links = ('name',)
 
     def has_add_permission(self, request):

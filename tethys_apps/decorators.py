@@ -4,21 +4,39 @@
 * Author: nswain
 * Created On: May 09, 2016
 * Copyright: (c) Aquaveo 2016
-* License: 
+* License:
 ********************************************************************************
 """
-try:
-    from urlparse import urlparse
-except ImportError:
-    from urllib.parse import urlparse
+from urllib.parse import urlparse
 
+from django.http import HttpRequest
 from django.contrib import messages
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.shortcuts import redirect
 from django.utils.functional import wraps
-from past.builtins import basestring
 from tethys_portal.views import error as tethys_portal_error
 from tethys_apps.base import has_permission
+from django.conf import settings
+from django.contrib.auth import REDIRECT_FIELD_NAME
+
+
+def login_required(function=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url=None):
+    """
+    Decorator for Tethys App controllers that checks whether a user has a permission.
+    """
+    def decorator(controller_func):
+        def wrapper(request, *args, **kwargs):
+
+            if not getattr(settings, 'ENABLE_OPEN_PORTAL', False):
+                from django.contrib.auth.decorators import login_required as lr
+                dec = lr(function=function, redirect_field_name=redirect_field_name, login_url=login_url)
+                controller = dec(controller_func)
+                return controller(request, *args, **kwargs)
+            else:
+                return controller_func(request, *args, **kwargs)
+
+        return wraps(controller_func)(wrapper)
+    return decorator
 
 
 def permission_required(*args, **kwargs):
@@ -81,24 +99,38 @@ def permission_required(*args, **kwargs):
             \"""
             ...
 
-    """
+    """  # noqa: E501
 
     use_or = kwargs.pop('use_or', False)
     message = kwargs.pop('message', "We're sorry, but you are not allowed to perform this operation.")
     raise_exception = kwargs.pop('raise_exception', False)
+    perms = [arg for arg in args if isinstance(arg, str)]
 
-    for arg in args:
-        if not isinstance(arg, basestring):
-            raise ValueError("Arguments must be a string and the name of a permission for the app.")
-
-    perms = args
+    if not perms:
+        raise ValueError('Must supply at least one permission to test.')
 
     def decorator(controller_func):
-        def _wrapped_controller(request, *args, **kwargs):
+        def _wrapped_controller(*args, **kwargs):
             # With OR check, we assume the permission test passes upfront
+            # Find request (varies position if class method is wrapped)
+            # e.g.: func(request, *args, **kwargs) vs. method(self, request, *args, **kwargs)
+            request_args_index = None
+            the_self = None
 
-            # Check permission
-            pass_permission_test = True
+            for index, arg in enumerate(args):
+                if isinstance(arg, HttpRequest):
+                    request_args_index = index
+
+            # Args are everything after the request object
+            if request_args_index is not None:
+                request = args[request_args_index]
+            else:
+                raise ValueError("No HttpRequest object provided.")
+
+            if request_args_index > 0:
+                the_self = args[0]
+
+            args = args[request_args_index+1:]
 
             # OR Loop
             if use_or:
@@ -123,7 +155,7 @@ def permission_required(*args, **kwargs):
             if not pass_permission_test:
                 if not raise_exception:
                     # If user is authenticated...
-                    if request.user.is_authenticated():
+                    if request.user.is_authenticated:
                         # User feedback
                         messages.add_message(request, messages.WARNING, message)
 
@@ -159,6 +191,12 @@ def permission_required(*args, **kwargs):
                 else:
                     return tethys_portal_error.handler_403(request)
 
-            return controller_func(request, *args, **kwargs)
+            # Call the controller
+            if the_self is not None:
+                response = controller_func(the_self, request, *args, **kwargs)
+            else:
+                response = controller_func(request, *args, **kwargs)
+
+            return response
         return wraps(controller_func)(_wrapped_controller)
     return decorator

@@ -21,15 +21,19 @@ def handler_400(request):
     return render(request, 'tethys_portal/error.html', context, status=400)
 
 
-def handler_403(request):
+def handler_403(request, *args, **argv):
     """
     Handle 403 errors
     """
+    error_message = "Permission Denied"
+    if 'exception' in argv and str(argv['exception']):
+        error_message = argv['exception']
+
     context = {'error_code': '403',
-               'error_title': 'Forbidden',
-               'error_message': "We apologize, but this operation is not permitted.",
-               'error_image': '/static/tethys_portal/images/error_403.png'}
-    return render(request, 'tethys_portal/error.html', context, status=403)
+               'error_title': 'Sorry, you are unable to access this page right now.',
+               'error_message': error_message,
+               'error_image': '/static/tethys_portal/images/data.png'}
+    return render(request, 'tethys_portal/403error.html', context, status=403)
 
 
 def handler_404(request):
@@ -38,7 +42,8 @@ def handler_404(request):
     """
     context = {'error_code': '404',
                'error_title': 'Page Not Found',
-               'error_message': "We are unable to find the page you requested. Please, check the address and try again.",
+               'error_message': "We are unable to find the page you requested. Please, check the address and try "
+                                "again.",
                'error_image': '/static/tethys_portal/images/error_404.png'}
     return render(request, 'tethys_portal/error.html', context, status=404)
 
@@ -52,4 +57,3 @@ def handler_500(request):
                'error_message': "We're sorry, but we seem to have a problem. Please, come back later and try again.",
                'error_image': '/static/tethys_portal/images/error_500.png'}
     return render(request, 'tethys_portal/error.html', context, status=500)
-

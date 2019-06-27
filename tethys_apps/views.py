@@ -7,16 +7,17 @@
 * License: BSD 2-Clause
 ********************************************************************************
 """
-from django.contrib.auth.decorators import login_required
+import logging
+from tethys_sdk.permissions import login_required
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.core.mail import send_mail
-
 from tethys_apps.base.app_base import TethysAppBase
 from tethys_apps.models import TethysApp
 from tethys_apps.utilities import get_active_app
+from tethys_compute.models import TethysJob, DaskJob
 
-from tethys_compute.models import TethysJob
+log = logging.getLogger('tethys.' + __name__)
 
 
 @login_required()
@@ -112,7 +113,7 @@ def send_beta_feedback_email(request):
         send_mail(subject, message, from_email=None, recipient_list=app.feedback_emails)
     except Exception as e:
         json = {'success': False,
-                'error': 'Failed to send email: ' + e.message}
+                'error': 'Failed to send email: ' + str(e)}
         return JsonResponse(json)
 
     json = {'success': True,
@@ -128,7 +129,27 @@ def update_job_status(request, job_id):
         job = TethysJob.objects.filter(id=job_id)[0]
         job.status
         json = {'success': True}
-    except Exception as e:
+    except Exception:
+        json = {'success': False}
+
+    return JsonResponse(json)
+
+
+def update_dask_job_status(request, key):
+    """
+    Callback endpoint for dask jobs to update status.
+    """
+    params = request.GET
+    status = params.get('status', None)
+    log.debug('Recieved update status for DaskJob<key: {} status: {}>'.format(key, status))
+
+    try:
+        job = DaskJob.objects.filter(key=key)[0]
+        job_status = job.DASK_TO_STATUS_TYPES[status]
+        log.debug('Mapped dask status "{}" to tethys job status: "{}"'.format(status, job_status))
+        job.status = job_status
+        json = {'success': True}
+    except Exception:
         json = {'success': False}
 
     return JsonResponse(json)

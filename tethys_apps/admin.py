@@ -8,8 +8,16 @@
 ********************************************************************************
 """
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
+from django.utils.html import format_html
+from django.shortcuts import reverse
+from tethys_quotas.admin import TethysAppQuotasSettingInline, UserQuotasSettingInline
 from guardian.admin import GuardedModelAdmin
+from tethys_quotas.utilities import get_quota, _convert_storage_units
+from tethys_quotas.handlers.workspace import WorkspaceQuotaHandler
 from tethys_apps.models import (TethysApp,
+                                TethysExtension,
                                 CustomSetting,
                                 DatasetServiceSetting,
                                 SpatialDatasetServiceSetting,
@@ -52,7 +60,7 @@ class WebProcessingServiceSettingInline(TethysAppSettingInline):
     model = WebProcessingServiceSetting
 
 
-#TODO: Figure out how to initialize persistent stores with button in admin
+# TODO: Figure out how to initialize persistent stores with button in admin
 # Consider: https://medium.com/@hakibenita/how-to-add-custom-action-buttons-to-django-admin-8d266f5b0d41
 class PersistentStoreConnectionSettingInline(TethysAppSettingInline):
     readonly_fields = ('name', 'description', 'required')
@@ -66,19 +74,21 @@ class PersistentStoreDatabaseSettingInline(TethysAppSettingInline):
     model = PersistentStoreDatabaseSetting
 
     def get_queryset(self, request):
-        qs = super(PersistentStoreDatabaseSettingInline, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return qs.filter(dynamic=False)
 
 
 class TethysAppAdmin(GuardedModelAdmin):
-    readonly_fields = ('package',)
-    fields = ('package', 'name', 'description', 'tags', 'enabled', 'show_in_apps_library', 'enable_feedback')
+    readonly_fields = ('package', 'manage_app_storage',)
+    fields = ('package', 'name', 'description', 'tags', 'enabled', 'show_in_apps_library', 'enable_feedback',
+              'manage_app_storage',)
     inlines = [CustomSettingInline,
                PersistentStoreConnectionSettingInline,
                PersistentStoreDatabaseSettingInline,
                DatasetServiceSettingInline,
                SpatialDatasetServiceSettingInline,
-               WebProcessingServiceSettingInline]
+               WebProcessingServiceSettingInline,
+               TethysAppQuotasSettingInline]
 
     def has_delete_permission(self, request, obj=None):
         return False
@@ -86,4 +96,42 @@ class TethysAppAdmin(GuardedModelAdmin):
     def has_add_permission(self, request):
         return False
 
+    def manage_app_storage(self, app):
+        codename = 'tethysapp_workspace_quota'
+        rqh = WorkspaceQuotaHandler(app)
+        current_use = _convert_storage_units(rqh.units, rqh.get_current_use())
+        quota = get_quota(app, codename)
+        if quota['quota']:
+            quota = _convert_storage_units(quota['units'], quota['quota'])
+        else:
+            quota = "&#8734;"
+
+        url = reverse('admin:clear_workspace', kwargs={'app_id': app.id})
+
+        return format_html("""
+        <span>{} of {}</span>
+        <a id="clear-workspace" class="btn btn-danger btn-sm"
+        href="{url}">
+        Clear Workspace</a>
+        """.format(current_use, quota, url=url))
+
+
+class TethysExtensionAdmin(GuardedModelAdmin):
+    readonly_fields = ('package', 'name', 'description')
+    fields = ('package', 'name', 'description', 'enabled')
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
+        return False
+
+
+class UserAdmin(BaseUserAdmin):
+    inlines = (UserQuotasSettingInline,)
+
+
+admin.site.unregister(User)
+admin.site.register(User, UserAdmin)
 admin.site.register(TethysApp, TethysAppAdmin)
+admin.site.register(TethysExtension, TethysExtensionAdmin)

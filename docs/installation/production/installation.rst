@@ -18,7 +18,7 @@ Follow the default :doc:`../linux_and_mac` instructions to install Tethys Portal
 
 For a production installation the installation script should be run with all of the following settings::
 
-    $ bash install_tethys.sh -allowed-host <YOUR_SERVERS_HOSTNAME> --db-username <SECURE_DB_USERNAME> --db-password <SECURE_DB_PASSWORD> --db-port <PORT_FOR_YOUR_DB_SERVER> --superuser <PORTAL_ADMIN_USERNAME> --superuser-email <PORTAL_ADMIN_EMAIL> --superuser-pass <PORTAL_ADMIN_PASSWORD> --production
+    $ bash install_tethys.sh --allowed-host <YOUR_SERVERS_HOSTNAME> --db-username <SECURE_DB_USERNAME> --db-password <SECURE_DB_PASSWORD> --db-port <PORT_FOR_YOUR_DB_SERVER> --superuser <PORTAL_ADMIN_USERNAME> --superuser-email <PORTAL_ADMIN_EMAIL> --superuser-pass <PORTAL_ADMIN_PASSWORD> --production
 
 .. note::
 
@@ -33,7 +33,7 @@ Open the :file:`settings.py` module for editing using ``vim`` or another text ed
 
 ::
 
-    sudo vim $TETHYS_HOME/src/tethys_apps/settings.py
+    sudo vim $TETHYS_HOME/src/tethys_portal/settings.py
 
 Press :kbd:`i` to start editing and change settings as necessary for your production environment. Some settings you may want to customize include:
 
@@ -108,6 +108,7 @@ For more information about setting up email capabilities for Tethys Platform, re
 
 For an excellent guide on setting up Postfix on Ubuntu, refer to `How To Install and Setup Postfix on Ubuntu 14.04 <https://www.digitalocean.com/community/tutorials/how-to-install-and-setup-postfix-on-ubuntu-14-04>`_.
 
+.. _production_installation_ssl:
 
 4. Setup SSL (https) on the Tethys and Geoserver (Recommended)
 ==============================================================
@@ -259,7 +260,7 @@ Finally, restart uWSGI and Nginx services to effect the changes::
 
 .. tip::
 
-    Use the alias `trestart` as a shortcut to doing the final step.
+    Use the alias `tsr` as a shortcut to doing the final step.
 
 
 The portal should now be accessible from: https://domain-name
@@ -277,8 +278,8 @@ Geoserver should now be accessible from: https://domain-name/geoserver
 Download and install any apps that you want to host using this installation of Tethys Platform. For more information see: :doc:`./app_installation`.
 
 
-.. todo::
+.. tip::
 
-    **Troubleshooting**: Here we try to provide some guidance on some of the most commonly encountered issues. If you are experiencing problems and can't find a solution here then please post a question on the `Tethys Platform Forum <https://groups.google.com/forum/#!forum/tethysplatform>`_.
+    **Troubleshooting**: If you are experiencing problems please search for a solution or post a question on the `Tethys Platform Forum <https://groups.google.com/forum/#!forum/tethysplatform>`_.
 
 
