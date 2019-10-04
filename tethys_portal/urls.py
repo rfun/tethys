@@ -18,12 +18,14 @@ from tethys_portal.views import accounts as tethys_portal_accounts, developer as
     error as tethys_portal_error, home as tethys_portal_home, user as tethys_portal_user
 from tethys_apps import views as tethys_apps_views
 
+from django.urls import reverse_lazy
+
 # ensure at least staff users logged in before accessing admin login page
 from django.contrib.admin.views.decorators import staff_member_required
-admin.site.login = staff_member_required(admin.site.login, redirect_field_name="", login_url='/accounts/login/')
+admin.site.login = staff_member_required(admin.site.login, redirect_field_name="", login_url=settings.LOGIN_URL)
 
 admin.autodiscover()
-admin.site.login = staff_member_required(admin.site.login, redirect_field_name="", login_url='/accounts/login/')
+admin.site.login = staff_member_required(admin.site.login, redirect_field_name="", login_url=settings.LOGIN_URL)
 
 
 account_urls = [
