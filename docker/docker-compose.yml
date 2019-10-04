@@ -1,8 +1,8 @@
 version: "3.4"
 services:
   tethys:
-    container_name: tethys-custom
-    image: tethys-custom
+    container_name: tethys-test1
+    image: tethys-test1
     build:
       context: ../
       target: app
@@ -12,7 +12,7 @@ services:
         TETHYSBUILD_DB_HOST: db
         TETHYSBUILD_DB_PORT: 5432
     ports:
-      - "8000:80"
+      - "8002:80"
     environment:
       CONDA_HOME: /opt/conda
       ALLOWED_HOSTS: '"[''127.0.0.1'', ''localhost'']"'
@@ -24,6 +24,7 @@ services:
       - db
   db:
     image: postgres
+    container_name: tethys-test1-db
     restart: always
     environment:
       POSTGRES_PASSWORD: tethys123
