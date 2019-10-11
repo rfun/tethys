@@ -11,6 +11,8 @@ services:
         TETHYSBUILD_DB_PASSWORD: tethys123
         TETHYSBUILD_DB_HOST: db
         TETHYSBUILD_DB_PORT: 5432
+    volumes:
+      - ../thredds:/usr/lib/tethys/thredds
     ports:
       - "8002:80"
     environment:

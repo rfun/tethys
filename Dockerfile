@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y \
     wget \
     gnupg2 \
     python3-pip \
- && wget -O - https://repo.saltstack.com/py3/debian/10/amd64/latest/SALTSTACK-GPG-KEY.pub | apt-key add - \
- && echo "deb http://repo.saltstack.com/py3/debian/10/amd64/latest buster main" > /etc/apt/sources.list.d/saltstack.list \
+ && wget -O - https://repo.saltstack.com/py3/debian/10/amd64/archive/2019.2.1/SALTSTACK-GPG-KEY.pub | apt-key add - \
+ && echo "deb http://repo.saltstack.com/py3/debian/10/amd64/archive/2019.2.1 buster main" > /etc/apt/sources.list.d/saltstack.list \
  && apt-get update && apt-get install -y \
     bzip2 \
     git \
@@ -27,9 +27,9 @@ ENV TETHYS_HOME="/usr/lib/tethys" \
     CONDA_HOME="/opt/conda" \
     CONDA_ENV_NAME=tethys
 
-ADD stable_environment_py3.yml ${TETHYS_HOME}/src/
+ADD environment_py3.yml ${TETHYS_HOME}/src/
 WORKDIR ${TETHYS_HOME}/src
-RUN ${CONDA_HOME}/bin/conda env create -n "${CONDA_ENV_NAME}" -f "stable_environment_py3.yml"
+RUN ${CONDA_HOME}/bin/conda env create -n "${CONDA_ENV_NAME}" -f "environment_py3.yml"
 
 
 FROM conda-app as app
