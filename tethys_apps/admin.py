@@ -16,7 +16,8 @@ from tethys_apps.models import (TethysApp,
                                 SpatialDatasetServiceSetting,
                                 WebProcessingServiceSetting,
                                 PersistentStoreConnectionSetting,
-                                PersistentStoreDatabaseSetting)
+                                PersistentStoreDatabaseSetting,
+                                ProxyApp)
 
 
 class TethysAppSettingInline(admin.TabularInline):
@@ -100,4 +101,5 @@ class TethysExtensionAdmin(GuardedModelAdmin):
 
 
 admin.site.register(TethysApp, TethysAppAdmin)
+admin.site.register(ProxyApp)
 admin.site.register(TethysExtension, TethysExtensionAdmin)
