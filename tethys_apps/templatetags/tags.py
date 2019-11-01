@@ -31,7 +31,7 @@ def get_tags_from_apps(apps):
 @register.filter
 def get_tag_class(app):
 
-   if isinstance(app, dict):
+    if isinstance(app, dict):
         get_tags = app['tags']
     else:
         get_tags = app.tags
