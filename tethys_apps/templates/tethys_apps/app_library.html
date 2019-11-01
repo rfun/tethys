@@ -47,7 +47,6 @@
       <div id="app-list" class="isotopeContainer">
         {% for app in apps.configured %}
           {% if app.show_in_apps_library and app.enabled %}
-
    {% if app.proxied %}
             <a class="app-container isotopeSelector {{ app|get_tag_class }}" href="{{ app.url }}">
                <div class="app-icon">

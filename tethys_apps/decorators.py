@@ -20,7 +20,6 @@ from past.builtins import basestring
 from tethys_portal.views import error as tethys_portal_error
 from tethys_apps.base import has_permission
 
-
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
 

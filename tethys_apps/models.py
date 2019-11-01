@@ -18,6 +18,7 @@ from tethys_compute.utilities import ListField
 from sqlalchemy.orm import sessionmaker
 from tethys_apps.base.mixins import TethysBaseMixin
 from tethys_sdk.testing import is_testing_environment, get_test_db_name
+from tethys_services.models import validate_url
 
 from tethys_services.models import validate_url
 

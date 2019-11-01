@@ -16,6 +16,7 @@ from django.core.mail import send_mail
 from tethys_apps.base.app_base import TethysAppBase
 from tethys_apps.models import TethysApp
 from tethys_apps.utilities import get_active_app
+from tethys_apps.models import ProxyApp
 
 from tethys_apps.models import ProxyApp
 

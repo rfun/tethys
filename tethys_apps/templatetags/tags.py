@@ -13,7 +13,6 @@ def get_tags_from_apps(apps):
 
     if len(apps_list) > 5:
         for app in apps:
-
             if isinstance(app, dict):
                 get_tags = app['tags']
             else:
@@ -32,7 +31,7 @@ def get_tags_from_apps(apps):
 @register.filter
 def get_tag_class(app):
 
-    if isinstance(app, dict):
+   if isinstance(app, dict):
         get_tags = app['tags']
     else:
         get_tags = app.tags

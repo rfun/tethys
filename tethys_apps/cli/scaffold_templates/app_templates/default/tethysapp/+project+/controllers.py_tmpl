@@ -1,9 +1,6 @@
 from django.shortcuts import render
-<<<<<<< HEAD
-from django.contrib.auth.decorators import login_required
-=======
+
 from tethys_sdk.permissions import login_required
->>>>>>> origin/release_docker
 from tethys_sdk.gizmos import Button
 
 @login_required()
