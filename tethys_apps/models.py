@@ -809,9 +809,9 @@ class ProxyApp(models.Model):
     enabled = models.BooleanField(default=True)
     show_in_apps_library = models.BooleanField(default=True)
 
-       class Meta:
-            verbose_name = 'Proxy App'
-            verbose_name_plural = 'Proxy Apps'
+    class Meta:
+        verbose_name = 'Proxy App'
+        verbose_name_plural = 'Proxy Apps'
 
-        def __str__(self):
-            return self.name
+    def __str__(self):
+        return self.name
