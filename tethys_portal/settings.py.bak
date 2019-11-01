@@ -22,10 +22,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '{{ secret_key }}'
+SECRET_KEY = 'vb7jADzbxyq9n10FxYPdZwoVGzMjjIZsmABQmXzmNUF4NNyrxM'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = {% if production %}False{% else %}True{% endif %}
+DEBUG = False
 
 # List those who should be notified of an error when DEBUG = False as a tuple of (name, email address).
 # i.e.: ADMINS = (('John', 'john@example.com'), ('Mary', 'mary@example.com'))
@@ -36,7 +36,7 @@ ADMINS = ()
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # Warn user of forced logout after indicated number of seconds
-SESSION_SECURITY_WARN_AFTER = 840
+SESSION_SECURITY_WARN_AFTER = 25 * 60
 
 # Force user logout after a certain number of seconds
 SESSION_SECURITY_EXPIRE_AFTER = 900
@@ -75,11 +75,9 @@ LOGGING = {
     },
 }
 
-{% if allowed_hosts %}
-ALLOWED_HOSTS = {{ allowed_hosts|safe }}
-{% else %}
-ALLOWED_HOSTS = [{% if allowed_host %}'{{ allowed_host }}'{% endif %}]
-{% endif %}
+
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+
 
 # Application definition
 
@@ -169,11 +167,11 @@ WSGI_APPLICATION = 'tethys_portal.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': '{{ db_username }}',
-        'USER': '{{ db_username }}',
-        'PASSWORD': '{{ db_password }}',
-        'HOST': '127.0.0.1',
-        'PORT': '{{ db_port }}'
+        'NAME': 'tethys_admin',
+        'USER': 'tethys_admin',
+        'PASSWORD': 'pass123',
+        'HOST': 'db',
+        'PORT': '5432'
     }
 }
 
@@ -227,13 +225,8 @@ TEMPLATES = [
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
-<<<<<<< HEAD
 LOGIN_URL = "/geoglows/accounts/login"
 STATIC_URL = '/geoglows/static/'
-=======
-LOGIN_URL = "/tethys1/accounts/login"
-STATIC_URL = '/tethys1/static/'
->>>>>>> origin/release_docker
 
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'), )
 
@@ -244,10 +237,10 @@ STATICFILES_FINDERS = (
 )
 
 # Uncomment the next line for production installation
-{% if not production %}#{% endif %}STATIC_ROOT = '{{ tethys_home }}/static'
+STATIC_ROOT = '/usr/lib/tethys/static'
 
 # Tethys Workspaces
-{% if not production %}#{% endif %}TETHYS_WORKSPACES_ROOT = '{{ tethys_home }}/workspaces'
+TETHYS_WORKSPACES_ROOT = '/usr/lib/tethys/workspaces'
 
 # Messaging settings
 MESSAGE_TAGS = {message_constants.DEBUG: 'alert-danger',
@@ -267,7 +260,7 @@ GRAVATAR_DFFAULT_SECURE = True
 
 
 # Use this setting to bypass the home page
-BYPASS_TETHYS_HOME_PAGE = False
+BYPASS_TETHYS_HOME_PAGE = True
 
 # Use this setting to disable open account signup
 ENABLE_OPEN_SIGNUP = False

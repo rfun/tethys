@@ -13,8 +13,13 @@ def get_tags_from_apps(apps):
 
     if len(apps_list) > 5:
         for app in apps:
-            tags = app.tags
-            tags = [_f for _f in re.split("[,]+", tags) if _f]
+
+            if isinstance(app, dict):
+                get_tags = app['tags']
+            else:
+                get_tags = app.tags
+
+            tags = [_f for _f in re.split("[,]+ *", get_tags) if _f]
             for tag in tags:
                 tag = tag.replace('"', '')
                 tag = tag.replace("'", '')
@@ -26,8 +31,13 @@ def get_tags_from_apps(apps):
 
 @register.filter
 def get_tag_class(app):
-    get_tags = app.tags
-    get_tags = [_f for _f in re.split("[,]+", get_tags) if _f]
+
+    if isinstance(app, dict):
+        get_tags = app['tags']
+    else:
+        get_tags = app.tags
+
+    get_tags = [_f for _f in re.split("[,]+ *", get_tags) if _f]
     tags = []
     for tag in get_tags:
         tag = tag.replace('"', '')
