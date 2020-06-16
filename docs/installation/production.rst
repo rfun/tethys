@@ -1,8 +1,10 @@
-***********************
-Production Installation
-***********************
+.. _production_installation:
 
-**Last Updated:** August 12, 2015
+********************
+Deploy to Production
+********************
+
+**Last Updated:** January 2020
 
 The following instructions can be used to install Tethys Platform on a production server.
 
@@ -11,5 +13,7 @@ The following instructions can be used to install Tethys Platform on a productio
 
     production/system_requirements
     production/installation
+    production/ssl_config
+    production/email_config
     production/app_installation
     production/distributed

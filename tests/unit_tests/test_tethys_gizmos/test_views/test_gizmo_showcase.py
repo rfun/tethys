@@ -1,9 +1,8 @@
 import unittest
 import tethys_gizmos.views.gizmo_showcase as gizmo_showcase
-from requests.exceptions import ConnectionError
 from unittest import mock
 from django.test import RequestFactory
-from tests.factories.django_user import UserFactory
+from ... import UserFactory
 
 
 class TestGizmoShowcase(unittest.TestCase):
@@ -14,27 +13,8 @@ class TestGizmoShowcase(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @mock.patch('tethys_gizmos.views.gizmo_showcase.list_spatial_dataset_engines')
-    def test_get_geoserver_wms(self, mock_list_sdes):
-        endpoint = 'http://localhost:8080/geoserver/rest'
-        expected_endpoint = 'http://localhost:8080/geoserver/wms'
-        mock_sde = mock.MagicMock(type='GEOSERVER',
-                                  endpoint=endpoint)
-        mock_list_sdes.return_value = [mock_sde]
-        result = gizmo_showcase.get_geoserver_wms()
-
-        # Check Result
-        self.assertEqual(expected_endpoint, result)
-
-    @mock.patch('tethys_gizmos.views.gizmo_showcase.list_spatial_dataset_engines')
-    def test_get_geoserver_wms_connection_error(self, mock_list_sdes):
-        # Connection Error Case
-        endpoint = 'http://localhost:8080/geoserver/rest'
-        expected_endpoint = 'http://ciwmap.chpc.utah.edu:8080/geoserver/wms'
-        mock_sde = mock.MagicMock(type='GEOSERVER',
-                                  endpoint=endpoint)
-        mock_sde.validate.side_effect = ConnectionError
-        mock_list_sdes.return_value = [mock_sde]
+    def test_get_geoserver_wms(self):
+        expected_endpoint = 'https://demo.geo-solutions.it/geoserver/wms'
         result = gizmo_showcase.get_geoserver_wms()
 
         # Check Result
@@ -151,6 +131,25 @@ class TestGizmoShowcase(unittest.TestCase):
         self.assertIn('map_layers', render_call_args[0][0][2]['page_type'])
 
     @mock.patch('tethys_gizmos.views.gizmo_showcase.render')
+    def test_cesium_map_view_map_token(self, mock_render):
+        request = self.request_factory.get('/jobs', data={'cesium-ion-token': 'cesium-token-goes-here'})
+        request.user = self.user
+
+        # Execute
+        gizmo_showcase.cesium_map_view(request, 'map_layers')
+
+        # Check render
+        render_call_args = mock_render.call_args_list
+
+        self.assertIn('cesium-token-goes-here', render_call_args[0][0][2]['home_link'])
+        self.assertIn('cesium-token-goes-here', render_call_args[0][0][2]['map_layers_link'])
+        self.assertIn('cesium-token-goes-here', render_call_args[0][0][2]['terrain_link'])
+        self.assertIn('cesium-token-goes-here', render_call_args[0][0][2]['czml_link'])
+        self.assertIn('cesium-token-goes-here', render_call_args[0][0][2]['geojson_link'])
+        self.assertIn('cesium-token-goes-here', render_call_args[0][0][2]['model_link'])
+        self.assertIn('cesium-token-goes-here', render_call_args[0][0][2]['model2_link'])
+
+    @mock.patch('tethys_gizmos.views.gizmo_showcase.render')
     def test_cesium_map_view_terrain(self, mock_render):
         request = self.request_factory.get('/jobs')
         request.user = self.user
@@ -173,6 +172,18 @@ class TestGizmoShowcase(unittest.TestCase):
         # Check render
         render_call_args = mock_render.call_args_list
         self.assertIn('czml', render_call_args[0][0][2]['page_type'])
+
+    @mock.patch('tethys_gizmos.views.gizmo_showcase.render')
+    def test_cesium_map_view_geojson(self, mock_render):
+        request = self.request_factory.get('/jobs')
+        request.user = self.user
+
+        # Execute
+        gizmo_showcase.cesium_map_view(request, 'geojson')
+
+        # Check render
+        render_call_args = mock_render.call_args_list
+        self.assertIn('geojson', render_call_args[0][0][2]['page_type'])
 
     @mock.patch('tethys_gizmos.views.gizmo_showcase.render')
     def test_cesium_map_view_model(self, mock_render):
@@ -234,7 +245,8 @@ class TestGizmoShowcase(unittest.TestCase):
             results_url='gizmos:results',
             refresh_interval=10000,
             delete_btn=True,
-            show_detailed_status=True
+            show_detailed_status=True,
+            show_resubmit_btn=True,
         )
 
         mock_render.assert_called_with(request, 'tethys_gizmos/gizmo_showcase/jobs_table.html',

@@ -1,9 +1,13 @@
 import unittest
 from unittest import mock
 from django.contrib.auth.models import User
-from tethys_portal.views.user \
-    import profile, settings, change_password, social_disconnect, delete_account, manage_storage, clear_workspace
-from tethys_apps.models import TethysApp
+
+# Fixes the Cache-Control error in tests. Must appear before view imports.
+mock.patch('django.views.decorators.cache.never_cache', lambda x: x).start()
+
+from tethys_portal.views.user import profile, settings, change_password, social_disconnect, delete_account, \
+    manage_storage, clear_workspace  # noqa: E402
+from tethys_apps.models import TethysApp  # noqa: E402
 
 
 class TethysPortalUserTests(unittest.TestCase):
@@ -377,7 +381,8 @@ class TethysPortalUserTests(unittest.TestCase):
     @mock.patch('tethys_portal.views.user.TethysApp')
     @mock.patch('tethys_portal.views.user.messages.success')
     @mock.patch('tethys_portal.views.user.redirect')
-    def test_clear_workspace_successful(self, mock_redirect, mock_message, mock_app, mock_user, mock_guw, mock_get_app_class):  # noqa: E501
+    def test_clear_workspace_successful(self, mock_redirect, mock_message, mock_app, mock_user, mock_guw,
+                                        mock_get_app_class):  # noqa: E501
         mock_request = mock.MagicMock(method='POST', POST='clear-workspace-submit')
         mock_request.user.username = 'ThisIsMe'
 

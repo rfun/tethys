@@ -3,7 +3,7 @@ import tethys_apps.base.workspace as base_workspace
 import os
 import shutil
 from unittest import mock
-from tests.factories.django_user import UserFactory
+from ... import UserFactory
 from django.http import HttpRequest
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
@@ -12,12 +12,12 @@ from tethys_apps.base.workspace import user_workspace, app_workspace, _get_app_w
 from tethys_quotas.models import ResourceQuota
 
 
-@user_workspace()
+@user_workspace
 def user_dec_controller(request, user_workspace):
     return user_workspace
 
 
-@app_workspace()
+@app_workspace
 def app_dec_controller(request, app_workspace):
     return app_workspace
 

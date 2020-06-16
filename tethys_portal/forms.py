@@ -7,10 +7,26 @@
 * License: BSD 2-Clause
 ********************************************************************************
 """
-from captcha.fields import CaptchaField
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
+
+from django.conf import settings
+
+
+def get_captcha():
+    if getattr(settings, 'ENABLE_CAPTCHA', False):
+        if getattr(settings, 'RECAPTCHA_PRIVATE_KEY', '') and getattr(settings, 'RECAPTCHA_PUBLIC_KEY', ''):
+            from snowpenguin.django.recaptcha2.fields import ReCaptchaField
+            from snowpenguin.django.recaptcha2.widgets import ReCaptchaWidget
+
+            return ReCaptchaField(label='', widget=ReCaptchaWidget())
+        else:
+            from captcha.fields import CaptchaField
+
+            return CaptchaField(label='')
+    else:
+        return None
 
 
 class LoginForm(forms.Form):
@@ -32,10 +48,14 @@ class LoginForm(forms.Form):
     password = forms.CharField(
         label='',
         widget=forms.PasswordInput(
-            attrs={'placeholder': 'Password'}
+            attrs={
+                'placeholder': 'Password',
+                'autocomplete': 'off'
+            }
         )
     )
-    captcha = CaptchaField(label='')
+
+    captcha = get_captcha()
 
 
 class RegisterForm(forms.ModelForm):
@@ -73,18 +93,24 @@ class RegisterForm(forms.ModelForm):
     password1 = forms.CharField(
         label='',
         widget=forms.PasswordInput(
-            attrs={'placeholder': 'Password'}
+            attrs={
+                'placeholder': 'Password',
+                'autocomplete': 'off'
+            }
         )
     )
 
     password2 = forms.CharField(
         label='',
         widget=forms.PasswordInput(
-            attrs={'placeholder': 'Confirm Password'}
+            attrs={
+                'placeholder': 'Confirm Password',
+                'autocomplete': 'off'
+            }
         )
     )
 
-    captcha = CaptchaField(label='')
+    captcha = get_captcha()
 
     class Meta:
         model = User
@@ -194,7 +220,8 @@ class UserPasswordChangeForm(forms.Form):
         widget=forms.PasswordInput(
             attrs={
                 'placeholder': 'Old Password',
-                'autofocus': 'autofocus'
+                'autofocus': 'autofocus',
+                'autocomplete': 'off'
             }
         )
     )
@@ -202,14 +229,20 @@ class UserPasswordChangeForm(forms.Form):
     new_password1 = forms.CharField(
         label="",
         widget=forms.PasswordInput(
-            attrs={'placeholder': 'New Password'}
+            attrs={
+                'placeholder': 'New Password',
+                'autocomplete': 'off'
+            }
         )
     )
 
     new_password2 = forms.CharField(
         label="",
         widget=forms.PasswordInput(
-            attrs={'placeholder': 'Confirm New Password'}
+            attrs={
+                'placeholder': 'Confirm New Password',
+                'autocomplete': 'off'
+            }
         )
     )
 

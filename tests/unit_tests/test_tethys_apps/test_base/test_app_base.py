@@ -2,8 +2,9 @@ import unittest
 import tethys_apps.base.app_base as tethys_app_base
 from unittest import mock
 
+from django.db.utils import ProgrammingError
 from django.test import RequestFactory
-from tests.factories.django_user import UserFactory
+from ... import UserFactory
 from django.core.exceptions import ObjectDoesNotExist
 from tethys_apps.exceptions import TethysAppSettingDoesNotExist, TethysAppSettingNotAssigned
 from types import FunctionType
@@ -128,6 +129,132 @@ class TestTethysBase(unittest.TestCase):
                         ' the controller function "test_app.controllers.home1"'
         self.assertIn(error_message, rts_call_args[0][0][0])
 
+    @mock.patch('tethys_apps.base.app_base.url')
+    @mock.patch('tethys_apps.base.app_base.TethysBaseMixin')
+    def test_handler_patterns(self, mock_tbm, mock_url):
+        # import pdb; pdb.set_trace()
+        app = tethys_app_base.TethysBase()
+        app._namespace = 'foo'
+        app.root_url = 'test-url'
+        url_map = mock.MagicMock(controller='test_app.controllers.home',
+                                 handler='test_app.controllers.home_handler', handler_type='bokeh', url='')
+        url_map.name = 'home'
+
+        app.url_maps = mock.MagicMock(return_value=[url_map, ])
+        mock_tbm.return_value = mock.MagicMock(url_maps=['test-app', ])
+
+        # Execute
+        result = app.handler_patterns
+        # Check url call at django_url = url...
+        rts_call_args = mock_url.call_args_list
+        self.assertEqual(r'^apps/test-url/autoload.js$', rts_call_args[0][0][0])
+        self.assertEqual(r'^apps/test-url/ws$', rts_call_args[1][0][0])
+        self.assertIn('name', rts_call_args[0][1])
+        self.assertIn('name', rts_call_args[1][1])
+        self.assertEqual('home_bokeh_autoload', rts_call_args[0][1]['name'])
+        self.assertEqual('home_bokeh_ws', rts_call_args[1][1]['name'])
+        self.assertIn('foo', result['http'])
+        self.assertIn('foo', result['websocket'])
+        self.assertIsInstance(rts_call_args[0][0][1], type)
+        self.assertIsInstance(rts_call_args[1][0][1], type)
+
+    @mock.patch('tethys_apps.base.app_base.url')
+    @mock.patch('tethys_apps.base.app_base.TethysBaseMixin')
+    def test_handler_patterns_from_function(self, mock_tbm, mock_url):
+        app = tethys_app_base.TethysBase()
+        app._namespace = 'foo'
+        app.root_url = 'test-url'
+
+        def test_func(mock_doc):
+            return ''
+
+        url_map = mock.MagicMock(controller='test_app.controllers.home',
+                                 handler=test_func, handler_type='bokeh', url='')
+        url_map.name = 'home'
+        app.url_maps = mock.MagicMock(return_value=[url_map, ])
+        mock_tbm.return_value = mock.MagicMock(url_maps=['test-app', ])
+
+        app.handler_patterns
+
+        rts_call_args = mock_url.call_args_list
+        self.assertEqual(r'^apps/test-url/autoload.js$', rts_call_args[0][0][0])
+        self.assertIn('name', rts_call_args[0][1])
+        self.assertIn('name', rts_call_args[1][1])
+        self.assertEqual('home_bokeh_autoload', rts_call_args[0][1]['name'])
+        self.assertEqual('home_bokeh_ws', rts_call_args[1][1]['name'])
+        self.assertIs(rts_call_args[0][1]['kwargs']['app_context']._application._handlers[0]._func, test_func)
+
+    @mock.patch('tethys_apps.base.app_base.url')
+    @mock.patch('tethys_apps.base.app_base.TethysBaseMixin')
+    def test_handler_patterns_url_basename(self, mock_tbm, mock_url):
+        app = tethys_app_base.TethysBase()
+        app._namespace = 'foo'
+        app.root_url = 'test-url'
+
+        def test_func(mock_doc):
+            return ''
+
+        url_map = mock.MagicMock(controller='test_app.controllers.home',
+                                 handler=test_func, handler_type='bokeh')
+        url_map.name = 'basename'
+        url_map.url = 'basename/'
+        app.url_maps = mock.MagicMock(return_value=[url_map, ])
+        mock_tbm.return_value = mock.MagicMock(url_maps=['basename/', ])
+
+        app.handler_patterns
+
+        rts_call_args = mock_url.call_args_list
+        self.assertEqual(r'^apps/test-url/basename/autoload.js$', rts_call_args[0][0][0])
+        self.assertIn('name', rts_call_args[0][1])
+        self.assertIn('name', rts_call_args[1][1])
+        self.assertEqual('basename_bokeh_autoload', rts_call_args[0][1]['name'])
+        self.assertEqual('basename_bokeh_ws', rts_call_args[1][1]['name'])
+        self.assertIs(rts_call_args[0][1]['kwargs']['app_context']._application._handlers[0]._func, test_func)
+
+    @mock.patch('tethys_apps.base.app_base.tethys_log')
+    @mock.patch('tethys_apps.base.app_base.TethysBaseMixin')
+    def test_handler_patterns_import_error(self, mock_tbm, mock_log):
+        mock_error = mock_log.error
+        app = tethys_app_base.TethysBase()
+        url_map = mock.MagicMock(controller='test_app.controllers.home',
+                                 handler='1module.1function', handler_type='bokeh', url='')
+        url_map.name = 'home'
+        app.url_maps = mock.MagicMock(return_value=[url_map])
+        mock_tbm.return_value = mock.MagicMock(url_maps=['test-app', ])
+
+        # assertRaises needs a callable, not a property
+        def test_handler_patterns():
+            return app.handler_patterns
+
+        # Check Error Message
+        self.assertRaises(ImportError, test_handler_patterns)
+        rts_call_args = mock_error.call_args_list
+        error_message = 'The following error occurred while trying to import' \
+                        ' the handler function "1module.1function"'
+        self.assertIn(error_message, rts_call_args[0][0][0])
+
+    @mock.patch('tethys_apps.base.app_base.tethys_log')
+    @mock.patch('tethys_apps.base.app_base.TethysBaseMixin')
+    def test_handler_patterns_attribute_error(self, mock_tbm, mock_log):
+        mock_error = mock_log.error
+        app = tethys_app_base.TethysBase()
+        url_map = mock.MagicMock(controller='test_app.controllers.home',
+                                 handler='test_app.controllers.home_handler1', handler_type='bokeh', url='')
+        url_map.name = 'home'
+        app.url_maps = mock.MagicMock(return_value=[url_map])
+        mock_tbm.return_value = mock.MagicMock(url_maps='test-app')
+
+        # assertRaises needs a callable, not a property
+        def test_handler_patterns():
+            return app.handler_patterns
+
+        # Check Error Message
+        self.assertRaises(AttributeError, test_handler_patterns)
+        rts_call_args = mock_error.call_args_list
+        error_message = 'The following error occurred while trying to access' \
+                        ' the handler function "test_app.controllers.home_handler1"'
+        self.assertIn(error_message, rts_call_args[0][0][0])
+
     def test_sync_with_tethys_db(self):
         self.assertRaises(NotImplementedError, tethys_app_base.TethysBase().sync_with_tethys_db)
 
@@ -188,6 +315,19 @@ class TestTethysExtensionBase(unittest.TestCase):
         # Check_result
         rts_call_args = mock_error.call_args_list
         self.assertEqual('test_error', rts_call_args[0][0][0].args[0])
+
+    @mock.patch('tethys_apps.base.app_base.tethys_log')
+    @mock.patch('tethys_apps.models.TethysExtension')
+    def test_sync_with_tethys_db_exists_progamming_error(self, mock_te, mock_log):
+        mock_warning = mock_log.warning
+        ext = tethys_app_base.TethysExtensionBase()
+        ext.root_url = 'test_url'
+        mock_te.objects.filter().all.side_effect = ProgrammingError('test_error')
+        ext.sync_with_tethys_db()
+
+        # Check_result
+        mock_warning.assert_called_with("Unable to sync extension with database. "
+                                        "tethys_apps_tethysextension table does not exist")
 
 
 class TestTethysAppBase(unittest.TestCase):
@@ -390,15 +530,12 @@ class TestTethysAppBase(unittest.TestCase):
         self.assertIn(':delete_test', check_list)
         self.assertIn('test_get', check_list)
 
-    def test_job_templates(self):
-        self.assertIsNone(tethys_app_base.TethysAppBase().job_templates())
-
     @mock.patch('tethys_apps.base.app_base.HandoffManager')
     def test_get_handoff_manager(self, mock_hom):
         mock_hom.return_value = 'test_handoff'
         self.assertEqual('test_handoff', self.app.get_handoff_manager())
 
-    @mock.patch('tethys_sdk.jobs.JobManager')
+    @mock.patch('tethys_compute.job_manager.JobManager')
     def test_get_job_manager(self, mock_jm):
         mock_jm.return_value = 'test_job_manager'
         self.assertEqual('test_job_manager', self.app.get_job_manager())
@@ -561,7 +698,7 @@ class TestTethysAppBase(unittest.TestCase):
         TethysAppChild.get_persistent_store_connection(name=self.fake_name)
 
         # Check log
-        rts_call_args = mock_log.warn.call_args_list
+        rts_call_args = mock_log.warning.call_args_list
         self.assertIn('Tethys app setting is not assigned.', rts_call_args[0][0][0])
         check_string = 'PersistentStoreConnectionSetting named "{}" has not been assigned'. format(self.fake_name)
         self.assertIn(check_string, rts_call_args[0][0][0])
@@ -598,7 +735,7 @@ class TestTethysAppBase(unittest.TestCase):
         TethysAppChild.get_persistent_store_database(name=self.fake_name)
 
         # Check log
-        rts_call_args = mock_log.warn.call_args_list
+        rts_call_args = mock_log.warning.call_args_list
         self.assertIn('Tethys app setting is not assigned.', rts_call_args[0][0][0])
         check_string = 'PersistentStoreDatabaseSetting named "{}" has not been assigned'. format(self.fake_name)
         self.assertIn(check_string, rts_call_args[0][0][0])
@@ -892,6 +1029,15 @@ class TestTethysAppBase(unittest.TestCase):
         self.app.sync_with_tethys_db()
 
         mock_log.error.assert_called()
+
+    @mock.patch('tethys_apps.base.app_base.tethys_log')
+    @mock.patch('tethys_apps.models.TethysApp')
+    def test_sync_with_tethys_db_programming_error(self, mock_ta, mock_log):
+        mock_ta.objects.filter().all.side_effect = ProgrammingError
+        self.app.sync_with_tethys_db()
+
+        mock_log.warning.assert_called_with("Unable to sync app with database. "
+                                            "tethys_apps_tethysapp table does not exist")
 
     @mock.patch('tethys_apps.models.TethysApp')
     def test_remove_from_db(self, mock_ta):

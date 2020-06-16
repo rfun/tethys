@@ -9,11 +9,11 @@ The pages of a Tethys app are created using the Django template language. This p
 Django Templating Concepts
 ==========================
 
-The Django template language allows you to create dynamic HTML templates and minmizes the amount of HTML you need to write for your app pages. This section will provide a crash course in Django template language basics, but we highly recommend a review of the `Django Template Language <https://docs.djangoproject.com/en/1.7/topics/templates/>`_ documentation.
+The Django template language allows you to create dynamic HTML templates and minmizes the amount of HTML you need to write for your app pages. This section will provide a crash course in Django template language basics, but we highly recommend a review of the `Django Template Language <https://docs.djangoproject.com/en/2.2/topics/templates/>`_ documentation.
 
 .. tip::
 
-    Review the `Django Template Language <https://docs.djangoproject.com/en/1.7/topics/templates/>`_ to get a better grasp on templating in Tethys.
+    Review the `Django Template Language <https://docs.djangoproject.com/en/2.2/topics/templates/>`_ to get a better grasp on templating in Tethys.
 
 Variables
 ---------
@@ -22,7 +22,7 @@ In Django templates, variables are denoted by double curly brace syntax: ``{{ va
 
 Examples:
 
-::
+.. code-block:: html+django
 
   # Examples of Django template variable syntax
   {{ variable }}
@@ -38,7 +38,7 @@ Examples:
 
 .. hint::
 
-    See `Django template Variables <https://docs.djangoproject.com/en/1.7/topics/templates/#variables>`_ documentation for more information.
+    See `Django template Variables <https://docs.djangoproject.com/en/2.2/topics/templates/#variables>`_ documentation for more information.
 
 Filters
 -------
@@ -47,7 +47,7 @@ Variables can be modified by filters which look like this: ``{{ variable|filter:
 
 Examples:
 
-::
+.. code-block:: html+django
 
     # The default filter can be used to print a default value when the variable is falsy
     {{ variable|default:"nothing" }}
@@ -57,7 +57,7 @@ Examples:
 
 .. hint::
 
-    Refer to the `Django Filter Reference <https://docs.djangoproject.com/en/1.7/ref/templates/builtins/#ref-templates-builtins-filters>`_ for a full list of the filters available.
+    Refer to the `Django Filter Reference <https://docs.djangoproject.com/en/2.2/ref/templates/builtins/#ref-templates-builtins-filters>`_ for a full list of the filters available.
 
 Tags
 ----
@@ -66,7 +66,7 @@ Tags use curly brace percent sign syntax like this: ``{% tag %}``. Tags perform 
 
 Examples:
 
-::
+.. code-block:: html+django
 
     # The if tag only prints its contents when the condition evaluates to True
     {% if name %}
@@ -89,7 +89,7 @@ Examples:
 
 .. hint::
 
-    See the `Django Tag Reference <https://docs.djangoproject.com/en/1.7/ref/templates/builtins/#ref-templates-builtins-tags>`_ for a complete list of tags that Django provides.
+    See the `Django Tag Reference <https://docs.djangoproject.com/en/2.2/ref/templates/builtins/#ref-templates-builtins-tags>`_ for a complete list of tags that Django provides.
 
 Template Inheritance
 --------------------
@@ -98,15 +98,19 @@ One of the advantages of using the Django template language is that it provides 
 
 .. hint::
 
-    The `Django Template Inheritance <https://docs.djangoproject.com/en/1.7/topics/templates/#template-inheritance>`_ documentation provides an excellent example that illustrates how inheritance works.
+    The `Django Template Inheritance <https://docs.djangoproject.com/en/2.2/topics/templates/#template-inheritance>`_ documentation provides an excellent example that illustrates how inheritance works.
 
 
 Base Templates
 ==============
 
-There are two layers of templates provided for Tethys app development. The :file:`app_base.html` template provides the HTML skeleton for all Tethys app templates, which includes the base HTML structural elements (e.g.: ``<html>``, ``<head>``, and ``<body>`` elements), the base style sheets and JavaScript libraries, and many blocks for customization. All Tethys app projects also include a :file:`base.html` template that inherits from the :file:`app_base.html` template.
+There are two layers of templates provided for Tethys app development. The :file:`app_base.html` or any of its derivatives (See :ref:`additional_base_templates`) from which all Tethys apps inherit, and the :file:`base.html` at the app level from which all pages in an app project can inherit.
 
-App developers are encouraged to use the :file:`base.html` file as the base template for all of their templates, rather than extending the :file:`app_base.html` file directly. The :file:`base.html` template is easier to work with, because it includes only the blocks that will be used most often from the :file:`app_base.html` template. However, all of the blocks that are available from :file:`app_base.html` template will also be available for use in the :file:`base.html` template and any templates that extend it.
+The :file:`app_base.html` template provides the HTML skeleton for all Tethys app templates, which includes the base HTML structural elements (e.g.: ``<html>``, ``<head>``, and ``<body>`` elements), the base style sheets and JavaScript libraries, and many blocks for customization.
+
+All Tethys app projects also include a :file:`base.html` template that inherits from the :file:`app_base.html` template.
+
+App developers are encouraged to use the :file:`base.html` file as the base template for all of their templates within an app, rather than extending the :file:`app_base.html` file directly. The :file:`base.html` template is easier to work with, because it includes only the blocks that will be used most often from the :file:`app_base.html` template or its derivatives (See :ref:`additional_base_templates`). However, all of the blocks that are available from :file:`app_base.html` template or its selected derivative template will also be available for use in the :file:`base.html` template and any templates that extend it.
 
 Many of the blocks in the template correspond with different portions of the app interface. Figure 1 provides a graphical explanation of these blocks. An explanation of all the blocks provided in the :file:`app_base.html` and :file:`base.html` templates can be found in the section that follows.
 
@@ -128,6 +132,7 @@ Many of the blocks in the template correspond with different portions of the app
     11. app_actions_override
     12. app_actions
 
+
 Blocks
 ======
 
@@ -140,7 +145,7 @@ Override the ``<html>`` element open tag.
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block htmltag %}<html lang="es">{% endblock %}
 
@@ -151,7 +156,7 @@ Add attributes to the ``<head>`` element.
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block headtag %}style="display: block;"{% endblock %}
 
@@ -162,7 +167,7 @@ Override or append ``<meta>`` elements to the ``<head>`` element. To append to e
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block meta %}
       {{ block.super }}
@@ -176,7 +181,7 @@ Change title for the page. The title is used as metadata for the site and shows 
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block title %}{{ block.super }} - My Sub Title{% endblock %}
 
@@ -187,7 +192,7 @@ Add content before the stylesheets such as rss feeds and favicons. Use ``block.s
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block links %}
       <link rel="shortcut icon" href="/path/to/favicon.ico" />
@@ -200,7 +205,7 @@ The import_gizmos block allows you register gizmos to be added to your page so t
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block import_gizmos %}
       {% import_gizmo_dependency map_view %}
@@ -213,7 +218,7 @@ Add additional stylesheets to the page. Use ``block.super`` to preserve the exis
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block styles %}
       {{ block.super }}
@@ -227,7 +232,7 @@ Add JavaScript libraries that need to be loaded prior to the page being loaded. 
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block global_scripts %}
       {{ block.super }}
@@ -241,7 +246,7 @@ Add attributes to the ``body`` element.
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block bodytag %}class="a-class" onload="run_this();"{% endblock %}
 
@@ -256,7 +261,7 @@ app_header_override, app_navigation_toggle_override, app_icon_override, app_icon
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block app_content_wrapper_override %}
       <div>
@@ -280,7 +285,7 @@ Override the app navigation toggle button. This is useful if you want to create 
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block app_navigation_toggle_override %}{% endblock %}
 
@@ -301,7 +306,7 @@ Override the app icon ``<img>`` element in the header.
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block app_icon %}<img src="/path/to/icon.png">{% endblock %}
 
@@ -321,7 +326,7 @@ Override the app title element in the header.
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block app_title %}My App Title{% endblock %}
 
@@ -337,7 +342,7 @@ Use this block to add custom buttons to the app header. Use an anchor/link tag f
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block header_buttons %}
       <div class="header-button glyphicon-button">
@@ -394,7 +399,7 @@ Add content to the app content area. This should be the primary block used to ad
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block app_content %}
       <p>Content for my app.</p>
@@ -407,7 +412,7 @@ Use this block for adding elements after the app content such as Bootstrap modal
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block after_app_content %}
       {% gizmo my_modal %}
@@ -425,7 +430,7 @@ Override or append actions to the action area. These are typically buttons or li
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block app_actions %}
       <a href="" class="btn btn-default">Next</a>
@@ -439,158 +444,12 @@ Add additional JavaScripts to the page. Use ``block.super`` to preserve the exis
 
 *Example:*
 
-::
+.. code-block:: html+django
 
     {% block scripts %}
       {{ block.super }}
       <script href="/path/to/script.js" type="text/javascript"></script>
     {% endblock %}
-
-app_base.html
-=============
-
-This section provides the complete contents of the :file:`app_base.html` template. It is meant to be used as a reference for app developers, so they can be aware of the HTML structure underlying their app templates.
-
-::
-
-    {% load staticfiles tethys_gizmos %}
-    <!DOCTYPE html>
-
-    {% block htmltag %}
-    <!--[if IE 7]> <html lang="en" class="ie ie7"> <![endif]-->
-    <!--[if IE 8]> <html lang="en"  class="ie ie8"> <![endif]-->
-    <!--[if IE 9]> <html lang="en"  class="ie9"> <![endif]-->
-    <!--[if gt IE 8]><!--> <html lang="en" > <!--<![endif]-->
-    {% endblock %}
-
-      <head {% block headtag %}{% endblock %}>
-
-        {% block meta %}
-          <meta charset="utf-8" />
-          <meta http-equiv="X-UA-Compatible" content="IE=edge">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <meta name="generator" content="Django" />
-        {% endblock %}
-
-        <title>
-          {% if site_globals.site_title %}
-             {{ site_globals.site_title }}
-          {% elif site_globals.brand_text %}
-            {{ site_globals.brand_text }}
-          {% else %}
-            Tethys
-          {% endif %}
-          {% block title %}{% endblock %}
-        </title>
-
-        {% block links %}
-          {% if site_globals.favicon %}
-            <link rel="shortcut icon" href="{{ site_globals.favicon }}" />
-          {% endif %}
-        {% endblock %}
-
-        {% block styles %}
-          <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet" />
-          <link href="{% static 'tethys_apps/css/app_base.css' %}" rel="stylesheet" />
-        {% endblock %}
-
-        {% block global_scripts %}
-          <script src="//code.jquery.com/jquery-2.1.1.min.js" type="text/javascript"></script>
-          <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js" type="text/javascript"></script>
-        {% endblock %}
-
-      </head>
-
-      <body {% block bodytag %}{% endblock %}>
-
-        {% block app_content_wrapper_override %}
-          <div id="app-content-wrapper" class="show-nav">
-
-            {% block app_header_override %}
-              <div id="app-header" class="clearfix">
-                <div class="tethys-app-header" style="background: {{ tethys_app.color|default:'#1b95dc' }};">
-
-                  {% block app-navigation-toggle-override %}
-                    <a href="javascript:void(0);" class="toggle-nav">
-                      <div></div>
-                      <div></div>
-                      <div></div>
-                    </a>
-                  {% endblock %}
-
-                  {% block app_icon_override %}
-                    <div class="icon-wrapper">
-                      {% block app_icon %}<img src="{% static tethys_app.icon %}">{% endblock %}
-                    </div>
-                  {% endblock %}
-
-                  {% block app_title_override %}
-                    <div class="app-title-wrapper">
-                      <span class="app-title">{% block app_title %}{{ tethys_app.name }}{% endblock %}</span>
-                    </div>
-                  {% endblock %}
-
-                  {% block exit_button_override %}
-                    <div class="exit-button">
-                      <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'app_library' %}');">Exit</a>
-                    </div>
-                  {% endblock %}
-                </div>
-              </div>
-            {% endblock %}
-
-            {% block app_content_override %}
-              <div id="app-content">
-
-                {% block flash %}
-                  {% if messages %}
-                    <div class="flash-messages">
-
-                      {% for message in messages %}
-                        <div class="alert {% if message.tags %}{{ message.tags }}{% endif %} alert-dismissible" role="alert">
-                          <button type="button" class="close" data-dismiss="alert">
-                            <span aria-hidden="true">&times;</span>
-                            <span class="sr-only">Close</span>
-                          </button>
-                          {{ message }}
-                        </div>
-                      {% endfor %}
-                    </div>
-                  {% endif %}
-                {% endblock %}
-
-                {% block app_navigation_override %}
-                  <div id="app-navigation">
-                    {% block app_navigation %}
-                      <ul class="nav nav-pills nav-stacked">
-                        {% block app_navigation_items %}{% endblock %}
-                      </ul>
-                    {% endblock %}
-                  </div>
-                {% endblock %}
-
-                <div id="inner-app-content">
-                  {% block app_content %}{% endblock %}
-
-                  {# App actions are fixed to the bottom #}
-                  {% block app_actions_override %}
-                    <div id="app-actions">
-                      {% block app_actions %}{% endblock %}
-                    </div>
-                  {% endblock %}
-                </div>
-              </div>
-            {% endblock %}
-          </div>
-        {% endblock %}
-
-        {% block scripts %}
-          <script src="{% static 'tethys_apps/vendor/cookies.js' %}" type="text/javascript"></script>
-          <script src="{% static 'tethys_apps/js/app_base.js' %}" type="text/javascript"></script>
-          {% gizmo_dependencies %}
-        {% endblock %}
-      </body>
-    </html>
 
 base.html
 =========
@@ -601,11 +460,11 @@ All of the blocks provided by the :file:`base.html` template are inherited from 
 
 See the `Blocks`_ section for an explanation of each block.
 
-::
+.. code-block:: html+django
 
     {% extends "tethys_apps/app_base.html" %}
 
-    {% load staticfiles %}
+    {% load static %}
 
     {% block title %}- {{ tethys_app.name }}{% endblock %}
 
@@ -616,7 +475,7 @@ See the `Blocks`_ section for an explanation of each block.
 
     {% block app_icon %}
       {# The path you provided in your app.py is accessible through the tethys_app.icon context variable #}
-      <img src="{% static tethys_app.icon %}">
+      <img src="{% if 'http' in tethys_app.icon %}{{ tethys_app.icon }}{% else %}{% static tethys_app.icon %}{% endif %}" />
     {% endblock %}
 
     {# The name you provided in your app.py is accessible through the tethys_app.name context variable #}
@@ -644,4 +503,169 @@ See the `Blocks`_ section for an explanation of each block.
     {% block scripts %}
       {{ block.super }}
       <script src="{% static 'new_template_app/js/main.js' %}" type="text/javascript"></script>
+    {% endblock %}
+
+app_base.html
+=============
+
+This section provides the complete contents of the :file:`app_base.html` template. It is meant to be used as a reference for app developers, so they can be aware of the HTML structure underlying their app templates.
+
+.. literalinclude:: ../../tethys_apps/templates/tethys_apps/app_base.html
+    :language: html+django
+
+.. _additional_base_templates:
+
+Additional Base Templates
+=========================
+
+Additional templates that inherit from the :file:`app_base.html` template have been added to Tethys to facilitate app customization. These templates include:
+
+app_content_only.html
+---------------------
+
+This template contains only the app content. Code referencing displays block other than the ``app_content`` block will have no effect on this template. ``Override``, ``JavaScript``, and ``Style`` blocks retain their regular behavior.
+
+.. figure:: ../images/app_content_only.png
+    :width: 700px
+
+    **Figure 2.** Layout of the app_content_only.html file.
+
+app_header_content.html
+-----------------------
+
+This template contains only the header and app content. Code referencing any display block other than the ``app_content`` block or blocks contained in the app header (``app_icon``, ``app_title``, or ``header_buttons``) will have no effect on this template. ``Override``, ``JavaScript``, and ``Style`` blocks retain their regular behavior.
+
+.. figure:: ../images/app_header_content.png
+    :width: 700px
+
+    **Figure 3.** Layout of the app_header_content.html file.
+
+app_no_nav.html
+---------------
+
+This template is the same as normal :file:`app_base.html`, but with the navigation menu strip out. Code referencing the ``app_navigation`` block will have no effect on this template. Other blocks retain their regular behavior.
+
+.. figure:: ../images/app_no_nav.png
+    :width: 700px
+
+    **Figure 4.** Layout of the app_no_nav.html file.
+
+app_no_actions.html
+-------------------
+
+This template is the same as normal :file:`app_base.html`, but with no app actions section. Code referencing the ``app_actions`` block will have no effect on this template. Other blocks retain their regular behavior.
+
+.. figure:: ../images/app_no_actions.png
+    :width: 700px
+
+    **Figure 5.** Layout of the app_no_actions.html file.
+
+app_left_actions.html
+---------------------
+
+This template is the same as :file:`app_header_content.html` with the actions bar on left.
+
+.. figure:: ../images/app_left_actions.png
+    :width: 700px
+
+    **Figure 6.** Layout of the app_left_actions.html file.
+
+app_right_actions.html
+----------------------
+
+This template is the same as :file:`app_header_content.html` with the actions bar on right.
+
+.. figure:: ../images/app_right_actions.png
+    :width: 700px
+
+    **Figure 7.** Layout of the app_right_actions.html file.
+
+app_quad_split.html
+-------------------
+
+This template is the same as :file:`app_header_content.html` but with a 2 x 2 Bootstrap Grid in the content area.
+
+.. figure:: ../images/app_quad_split.png
+    :width: 700px
+
+    **Figure 8.** Layout of the app_quad_split.html file.
+
+Instead of an ``app_content`` block, this app uses the following four blocks:
+
+- **app_content_tl:** The app content that will be displayed in the top left section of the 2 x 2 grid.
+- **app_content_tr:** The app content that will be displayed in the top right section of the 2 x 2 grid.
+- **app_content_bl:** The app content that will be displayed in the bottom left section of the 2 x 2 grid.
+- **app_content_br:** The app content that will be displayed in the bottom right section of the 2 x 2 grid.
+
+*Example:*
+
+.. code-block:: html+django
+
+    {% block app_content_tl %}
+      <p>Top left content for my app.</p>
+    {% endblock %}
+    {% block app_content_tr %}
+      <p>Top right content for my app.</p>
+    {% endblock %}
+    {% block app_content_bl %}
+      <p>Bottom left content for my app.</p>
+    {% endblock %}
+    {% block app_content_br %}
+      <p>Bottom right content for my app.</p>
+    {% endblock %}
+
+app_three_columns.html
+----------------------
+
+This template is the same as :file:`app_header_content.html` but with a three-column Bootstrap Grid in the content area.
+
+.. figure:: ../images/app_three_columns.png
+    :width: 700px
+
+    **Figure 9.** Layout of the app_three_columns.html file.
+
+Instead of an ``app_content`` block, this app uses the following three blocks:
+
+- **app_content_lc:** The app content that will be displayed in the left column of the three-column grid.
+- **app_content_mc:** The app content that will be displayed in the middle column of the three-column grid.
+- **app_content_rc:** The app content that will be displayed in the right column of the three-column grid.
+
+*Example:*
+
+.. code-block:: html+django
+
+    {% block app_content_lc %}
+      <p>Left column content for my app.</p>
+    {% endblock %}
+    {% block app_content_tr %}
+      <p>Middle column content for my app.</p>
+    {% endblock %}
+    {% block app_content_bl %}
+      <p>Right column content for my app.</p>
+    {% endblock %}
+
+app_two_columns.html
+--------------------
+
+This template is the same as :file:`app_header_content.html` but with a two-column Bootstrap Grid in the content area.
+
+.. figure:: ../images/app_two_columns.png
+    :width: 700px
+
+    **Figure 10.** Layout of the app_two_columns.html file.
+
+Instead of an ``app_content`` block, this app uses the following two blocks:
+
+- **app_content_lc:** The app content that will be displayed in the left column of the two-column grid.
+- **app_content_rc:** The app content that will be displayed in the right column of the two-column grid.
+
+*Example:*
+
+.. code-block:: html+django
+
+    {% block app_content_lc %}
+      <p>Left column content for my app.</p>
+    {% endblock %}
+    {% block app_content_bl %}
+      <p>Right column content for my app.</p>
     {% endblock %}

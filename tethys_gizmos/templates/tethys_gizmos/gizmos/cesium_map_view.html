@@ -1,4 +1,4 @@
-{% load staticfiles tethys_gizmos %}
+{% load static tethys_gizmos %}
 
 
 <div id="cesium_map_view_outer_container" style="height: 100%;">
@@ -10,6 +10,7 @@
                     {{ key }}="{{ value }}"
                 {% endfor %}
             {% endif %}
+            data-cesium-ion-token="{{ cesium_ion_token }}"
             data-options="{{ options|jsonify }}"
             data-globe="{{ globe|jsonify }}"
             data-view="{{ view|jsonify }}"

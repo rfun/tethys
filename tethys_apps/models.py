@@ -9,6 +9,8 @@
 """
 import sqlalchemy
 import logging
+
+import django.dispatch
 from django.db import models
 from django.core.exceptions import ValidationError
 from model_utils.managers import InheritanceManager
@@ -17,6 +19,7 @@ from tethys_apps.exceptions import TethysAppSettingNotAssigned, PersistentStoreP
 from django.contrib.postgres.fields import ArrayField
 from sqlalchemy.orm import sessionmaker
 from tethys_apps.base.mixins import TethysBaseMixin
+from tethys_services.models import validate_url
 from tethys_sdk.testing import is_testing_environment, get_test_db_name
 
 from tethys_apps.base.function_extractor import TethysFunctionExtractor
@@ -57,10 +60,6 @@ class TethysApp(models.Model, TethysBaseMixin):
     show_in_apps_library = models.BooleanField(default=True)
 
     class Meta:
-        permissions = (
-            ('view_app', 'Can see app in library'),
-            ('access_app', 'Can access app'),
-        )
         verbose_name = 'Tethys App'
         verbose_name_plural = 'Installed Apps'
 
@@ -120,8 +119,7 @@ class TethysApp(models.Model, TethysBaseMixin):
         required_settings = [s for s in self.settings if s.required]
         for setting in required_settings:
             try:
-                if setting.get_value() is None:
-                    return False
+                setting.get_value()
             except TethysAppSettingNotAssigned:
                 return False
         return True
@@ -200,6 +198,7 @@ class CustomSetting(TethysAppSetting):
         type(enum): The type of the custom setting. Either CustomSetting.TYPE_STRING, CustomSetting.TYPE_INTEGER, CustomSetting.TYPE_FLOAT, CustomSetting.TYPE_BOOLEAN
         description(str): Short description of the setting.
         required(bool): A value will be required if True.
+        default(str): Value as a string that may be provided as a default.
 
     **Example:**
 
@@ -211,7 +210,8 @@ class CustomSetting(TethysAppSetting):
             name='default_name',
             type=CustomSetting.TYPE_STRING
             description='Default model name.',
-            required=True
+            required=True,
+            default="Name_123"
         )
 
         max_count_setting = CustomSetting(
@@ -250,14 +250,20 @@ class CustomSetting(TethysAppSetting):
         (TYPE_BOOLEAN, 'Boolean'),
     )
     value = models.CharField(max_length=1024, blank=True, default='')
+    default = models.CharField(max_length=1024, blank=True, default='')
     type = models.CharField(max_length=200, choices=TYPE_CHOICES, default=TYPE_STRING)
 
     def clean(self):
         """
         Validate prior to saving changes.
         """
-        if self.value == '' and self.required:
-            raise ValidationError('Required.')
+
+        if self.default != '':
+            if self.value == '':
+                self.value = self.default
+        else:
+            if self.value == '' and self.required:
+                raise ValidationError('Required.')
 
         if self.value != '' and self.type == self.TYPE_FLOAT:
             try:
@@ -279,8 +285,18 @@ class CustomSetting(TethysAppSetting):
         """
         Get the value, automatically casting it to the correct type.
         """
+        if self.default != '':
+            if self.value == '':
+                self.value = self.default
+
         if self.value == '' or self.value is None:
-            return None  # TODO Why don't we raise a NotAssigned error here?
+            if self.required:
+                raise TethysAppSettingNotAssigned(
+                    f'The required setting "{self.name}" for app "{self.tethys_app.package}":'
+                    f'has not been assigned.')
+
+            # None is a valid value to return in the case the value has not been set for this setting type
+            return None
 
         if self.type == self.TYPE_STRING:
             return self.value
@@ -293,6 +309,23 @@ class CustomSetting(TethysAppSetting):
 
         if self.type == self.TYPE_BOOLEAN:
             return self.value.lower() in self.TRUTHY_BOOL_STRINGS
+
+
+@django.dispatch.receiver(models.signals.post_init, sender=CustomSetting)
+def set_default_value(sender, instance, *args, **kwargs):
+    """
+    Set the default value for `value` on the `instance` of Setting.
+    This signal receiver will process it as soon as the object is created for use
+
+    Attributes:
+        sender(CustomSetting): The `CustomSetting` class that sent the signal.
+        instance(CustomSetting): The `CustomSetting` instance that is being initialised.
+
+    Returns:
+        None
+    """
+    if not instance.value or instance.value == '':
+        instance.value = instance.default
 
 
 class DatasetServiceSetting(TethysAppSetting):
@@ -344,9 +377,11 @@ class DatasetServiceSetting(TethysAppSetting):
     def get_value(self, as_public_endpoint=False, as_endpoint=False, as_engine=False):
 
         if not self.dataset_service:
-            return None  # TODO Why don't we raise a NotAssigned error here?
+            raise TethysAppSettingNotAssigned(f'Cannot create engine or endpoint for DatasetServiceSetting '
+                                              f'"{self.name}" for app "{self.tethys_app.package}": '
+                                              f'no DatasetService assigned.')
 
-        # TODO order here manters. Is this the order we want?
+        # Order here matters. Think carefully before changing.
         if as_engine:
             return self.dataset_service.get_engine()
 
@@ -366,7 +401,7 @@ class SpatialDatasetServiceSetting(TethysAppSetting):
     Attributes:
         name(str): Unique name used to identify the setting.
         description(str): Short description of the setting.
-        engine(enum): Only SpatialDatasetServiceSetting.GEOSERVER at this time.
+        engine(enum): One of SpatialDatasetServiceSetting.GEOSERVER or SpatialDatasetServiceSetting.THREDDS at this time.
         required(bool): A value will be required if True.
 
     **Example:**
@@ -382,10 +417,12 @@ class SpatialDatasetServiceSetting(TethysAppSetting):
             required=True,
         )
 
-    """
+    """  # noqa: E501
     GEOSERVER = SpatialDatasetService.GEOSERVER
+    THREDDS = SpatialDatasetService.THREDDS
 
     spatial_dataset_service = models.ForeignKey(SpatialDatasetService, on_delete=models.CASCADE, blank=True, null=True)
+
     engine = models.CharField(max_length=200,
                               choices=SpatialDatasetService.ENGINE_CHOICES,
                               default=SpatialDatasetService.GEOSERVER)
@@ -398,26 +435,42 @@ class SpatialDatasetServiceSetting(TethysAppSetting):
             raise ValidationError('Required.')
 
     def get_value(self, as_public_endpoint=False, as_endpoint=False, as_wms=False,
-                  as_wfs=False, as_engine=False):
+                  as_wfs=False, as_engine=False, as_wcs=False):
 
         if not self.spatial_dataset_service:
-            return None  # TODO Why don't we raise a NotAssigned error here?
+            raise TethysAppSettingNotAssigned(f'Cannot create engine or endpoint for SpatialDatasetServiceSetting '
+                                              f'"{self.name}" for app "{self.tethys_app.package}": '
+                                              f'no SpatialDatasetService assigned.')
 
-        # TODO order here manters. Is this the order we want?
+        # Order here matters. Think carefully before changing.
         if as_engine:
             return self.spatial_dataset_service.get_engine()
-
-        if as_wms:
-            return self.spatial_dataset_service.endpoint.split('/rest')[0] + '/wms'
-
-        if as_wfs:
-            return self.spatial_dataset_service.endpoint.split('/rest')[0] + '/ows'
 
         if as_endpoint:
             return self.spatial_dataset_service.endpoint
 
         if as_public_endpoint:
             return self.spatial_dataset_service.public_endpoint
+
+        if self.engine == self.GEOSERVER:
+            if as_wms:
+                return self.spatial_dataset_service.endpoint.split('/rest')[0] + '/wms'
+
+            if as_wfs:
+                return self.spatial_dataset_service.endpoint.split('/rest')[0] + '/ows'
+
+            if as_wcs:
+                return self.spatial_dataset_service.endpoint.split('/rest')[0] + '/wcs'
+
+        elif self.engine == self.THREDDS:
+            if as_wms:
+                return self.spatial_dataset_service.endpoint.rstrip('/') + '/wms'
+
+            if as_wcs:
+                return self.spatial_dataset_service.endpoint.rstrip('/') + '/wcs'
+
+            if as_wfs:
+                raise ValueError('THREDDS does not support the WFS interface.')
 
         return self.spatial_dataset_service
 
@@ -444,6 +497,7 @@ class WebProcessingServiceSetting(TethysAppSetting):
         )
 
     """
+
     web_processing_service = models.ForeignKey(WebProcessingService, on_delete=models.CASCADE, blank=True, null=True)
 
     def clean(self):
@@ -457,9 +511,11 @@ class WebProcessingServiceSetting(TethysAppSetting):
         wps_service = self.web_processing_service
 
         if not wps_service:
-            return None  # TODO Why don't we raise a NotAssigned error here?
+            raise TethysAppSettingNotAssigned(f'Cannot create engine or endpoint for WebProcessingServiceSetting '
+                                              f'"{self.name}" for app "{self.tethys_app.package}": '
+                                              f'no WebProcessingService assigned.')
 
-        # TODO order here manters. Is this the order we want?
+        # Order here matters. Think carefully before changing.
         if as_engine:
             return wps_service.get_engine()
 
@@ -494,8 +550,8 @@ class PersistentStoreConnectionSetting(TethysAppSetting):
         )
 
     """
-    persistent_store_service = models.ForeignKey(PersistentStoreService, on_delete=models.CASCADE, blank=True,
-                                                 null=True)
+    persistent_store_service = models.ForeignKey(
+        PersistentStoreService, on_delete=models.CASCADE, blank=True, null=True)
 
     def clean(self):
         """
@@ -512,10 +568,11 @@ class PersistentStoreConnectionSetting(TethysAppSetting):
 
         # Validate connection service
         if ps_service is None:
-            raise TethysAppSettingNotAssigned('Cannot create engine or url for PersistentStoreConnection "{0}" for app '
-                                              '"{1}": no PersistentStoreService found.'.format(self.name,
-                                                                                               self.tethys_app.package))
-        # Order matters here. Think carefully before changing...
+            raise TethysAppSettingNotAssigned(f'Cannot create engine or endpoint for PersistentStoreConnectionSetting '
+                                              f'"{self.name}" for app "{self.tethys_app.package}": '
+                                              f'no PersistentStoreService assigned.')
+
+        # Order here matters. Think carefully before changing.
         if as_engine:
             return ps_service.get_engine()
 
@@ -563,8 +620,8 @@ class PersistentStoreDatabaseSetting(TethysAppSetting):
     """
     spatial = models.BooleanField(default=False)
     dynamic = models.BooleanField(default=False)
-    persistent_store_service = models.ForeignKey(PersistentStoreService, on_delete=models.CASCADE, blank=True,
-                                                 null=True)
+    persistent_store_service = models.ForeignKey(
+        PersistentStoreService, on_delete=models.CASCADE, blank=True, null=True)
 
     def clean(self):
         """
@@ -600,13 +657,14 @@ class PersistentStoreDatabaseSetting(TethysAppSetting):
 
         # Validate connection service
         if ps_service is None:
-            raise TethysAppSettingNotAssigned('Cannot create engine or url for PersistentStoreDatabase "{0}" for app '
-                                              '"{1}": no PersistentStoreService found.'.format(self.name,
-                                                                                               self.tethys_app.package))
+            raise TethysAppSettingNotAssigned(f'Cannot create engine or endpoint for PersistentStoreDatabaseSetting '
+                                              f'"{self.name}" for app "{self.tethys_app.package}": '
+                                              f'no PersistentStoreService assigned.')
+
         if with_db:
             ps_service.database = self.get_namespaced_persistent_store_name()
 
-        # Order matters here. Think carefully before changing...
+        # Order here matters. Think carefully before changing.
         if as_engine:
             return ps_service.get_engine()
 
@@ -796,3 +854,24 @@ class PersistentStoreDatabaseSetting(TethysAppSetting):
         # Update initialization
         self.initialized = True
         self.save()
+
+
+class ProxyApp(models.Model):
+    """
+    DB model for Proxy Apps which allows you to redirect an app to another host.
+    """
+
+    name = models.CharField(max_length=100, unique=True)
+    endpoint = models.CharField(max_length=1024, validators=[validate_url])
+    logo_url = models.CharField(max_length=100, validators=[validate_url], blank=True)
+    description = models.TextField(max_length=2048, blank=True)
+    tags = models.CharField(max_length=200, blank=True, default='')
+    enabled = models.BooleanField(default=True)
+    show_in_apps_library = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Proxy App'
+        verbose_name_plural = 'Proxy Apps'
+
+    def __str__(self):
+        return self.name

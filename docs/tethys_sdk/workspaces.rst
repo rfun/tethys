@@ -1,3 +1,5 @@
+.. _tethys_workspaces_api:
+
 **************
 Workspaces API
 **************
@@ -40,16 +42,16 @@ TethysWorkspace Objects
 Centralize Workspaces
 =====================
 
-The Workspaces API includes a command, ``collectworkspaces``, for moving all workspaces to a central location and symbolically linking them back to the app project directories. This is especially useful for production where the administrator may want to locate workspace content on a mounted drive to optimize storage. A brief explanation of how to use this command will follow. Refer to the :doc:`./tethys_cli` documentation for details about the ``collectworkspaces`` command.
+The Workspaces API includes a command, ``collectworkspaces``, for moving all workspaces to a central location and symbolically linking them back to the app project directories. This is especially useful for production where the administrator may want to locate workspace content on a mounted drive to optimize storage. A brief explanation of how to use this command will follow. Refer to the :doc:`../tethys_cli` documentation for details about the ``collectworkspaces`` command.
 
 Setting
 -------
 
-To enable centralized workspaces create a directory for the workspaces and specify its path in the ``settings.py`` file using the ``TETHYS_WORKSPACES_ROOT`` setting.
+To enable centralized workspaces create a directory for the workspaces and specify its path in the :file:`portal_config.yml` file using the ``TETHYS_WORKSPACES_ROOT`` setting.
 
 ::
 
-    TETHYS_WORKSPACES_ROOT = '/var/www/tethys/workspaces'
+    TETHYS_WORKSPACES_ROOT: /var/www/tethys/workspaces
 
 Command
 -------
@@ -58,7 +60,7 @@ Run the ``collectworkspaces`` command to automatically move all of the workspace
 
 ::
 
-    $ tethys manage collectworkspaces
+    tethys manage collectworkspaces
 
 .. tip::
 
@@ -66,7 +68,7 @@ Run the ``collectworkspaces`` command to automatically move all of the workspace
 
     ::
 
-        $ tethys manage collectall
+        tethys manage collectall
 
 .. _tethys_quotas_workspace_manage:
 

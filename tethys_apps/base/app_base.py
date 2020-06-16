@@ -13,6 +13,7 @@ import sys
 import traceback
 import warnings
 
+from django.db.utils import ProgrammingError
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpRequest
 from django.utils.functional import SimpleLazyObject
@@ -25,6 +26,10 @@ from .workspace import TethysWorkspace
 from .mixins import TethysBaseMixin
 from ..exceptions import TethysAppSettingDoesNotExist, TethysAppSettingNotAssigned
 
+from bokeh.server.django.consumers import WSConsumer
+from bokeh.server.django import autoload
+
+from bokeh.server.django.consumers import AutoloadJsConsumer
 
 tethys_log = logging.getLogger('tethys.app_base')
 
@@ -40,11 +45,94 @@ class TethysBase(TethysBaseMixin):
 
     def __init__(self):
         self._url_patterns = None
+        self._handler_patterns = None
         self._namespace = None
+
+    @staticmethod
+    def _resolve_ref_function(ref, ref_type, is_extension):
+        """
+        This method retrieves a controller or handler function.
+
+        Args:
+            ref: The function of dot-formatted string path to the function
+            ref_type: Handler or controller
+            is_extension: Boolean. True if working with a Tethys Extension
+
+        Returns:
+            func: If the reference is a string returns the attribute value of the function.
+            If the reference is a function returns the referenced function itself.
+
+        Example:
+            controller_function = self._resolve_ref_function(url_map.controller, 'controller', is_extension)
+        """
+
+        if isinstance(ref, str):
+            root_controller_path = 'tethysext' if is_extension else 'tethysapp'
+            full_controller_path = '.'.join([root_controller_path, ref])
+            controller_parts = full_controller_path.split('.')
+            module_name = '.'.join(controller_parts[:-1])
+            function_name = controller_parts[-1]
+            try:
+                module = __import__(module_name, fromlist=[function_name])
+            except Exception as e:
+                error_msg = f'The following error occurred while trying to import the {ref_type} function ' \
+                            f'"{ref}":\n {traceback.format_exc(2)}'
+                tethys_log.error(error_msg)
+                raise e
+            try:
+                ref_function = getattr(module, function_name)
+            except AttributeError as e:
+                error_msg = f'The following error occurred while trying to access the {ref_type} function ' \
+                            f'"{ref}":\n {traceback.format_exc(2)}'
+                tethys_log.error(error_msg)
+                raise e
+        else:
+            ref_function = ref
+        return ref_function
+
+    def _resolve_bokeh_handler(self, namespace, url_map, handler_function, handler_patterns):
+        """
+        Create and add url patterns for bokeh handler
+
+        Args:
+            namespace: App name
+            url_map: Mapping containing url name, controller, and handler information
+            handler_function: The function returned by _resolve_ref_function
+            handler_patterns: dictionary to add http and websocket patterns to
+
+        Returns:
+            None
+
+        Example:
+            self._resolve_bokeh_handler(namespace, url_map, handler_function, handler_patterns)
+        """
+
+        if url_map.url in [r'', r'/', r'^$', r'^/$']:
+            app_endpoint = '/'.join(['apps', self.root_url])
+        else:
+            stripped_url = url_map.url.replace("^", "").replace("$", "")
+            if stripped_url.endswith('/'):
+                stripped_url = stripped_url[:-1]
+
+            app_endpoint = '/'.join(['apps', self.root_url, stripped_url])
+        bokeh_app = autoload(app_endpoint, handler_function)
+        kwargs = dict(app_context=bokeh_app.app_context)
+
+        def urlpattern(suffix=""):
+            url_pattern = bokeh_app.url + suffix
+            return f'^{url_pattern}$'
+
+        http_url = url(urlpattern('/autoload.js'), AutoloadJsConsumer,
+                       name=f'{url_map.name}_bokeh_autoload', kwargs=kwargs)
+        ws_url = url(urlpattern('/ws'), WSConsumer, name=f'{url_map.name}_bokeh_ws', kwargs=kwargs)
+
+        # Append to namespace list
+        handler_patterns['http'][namespace].append(http_url)
+        handler_patterns['websocket'][namespace].append(ws_url)
 
     def url_maps(self):
         """
-        Override this method to define the URL Maps for your app. Your ``UrlMap`` objects must be created from a ``UrlMap`` class that is bound to the ``root_url`` of your app. Use the ``url_map_maker()`` function to create the bound ``UrlMap`` class. If you generate your app project from the scaffold, this will be done automatically. Starting in Tethys 3.0, the ``WebSocket`` protocol is supported along with the ``HTTP`` protocol. To create a ``WebSocket UrlMap``, follow the same pattern used for the ``HTTP`` protocol. In addition, provide a ``Consumer`` path in the controllers parameter as well as a ``WebSocket`` string value for the new protocol parameter for the ``WebSocket UrlMap``.
+        Override this method to define the URL Maps for your app. Your ``UrlMap`` objects must be created from a ``UrlMap`` class that is bound to the ``root_url`` of your app. Use the ``url_map_maker()`` function to create the bound ``UrlMap`` class. If you generate your app project from the scaffold, this will be done automatically. Starting in Tethys 3.0, the ``WebSocket`` protocol is supported along with the ``HTTP`` protocol. To create a ``WebSocket UrlMap``, follow the same pattern used for the ``HTTP`` protocol. In addition, provide a ``Consumer`` path in the controllers parameter as well as a ``WebSocket`` string value for the new protocol parameter for the ``WebSocket UrlMap``. Alternatively, Bokeh Server can also be integrated into Tethys using ``Django Channels`` and ``Websockets``. Tethys will automatically set these up for you if a ``handler`` and ``handler_type`` parameters are provided as part of the ``UrlMap``.
 
         Returns:
           iterable: A list or tuple of ``UrlMap`` objects.
@@ -64,16 +152,22 @@ class TethysBase(TethysBaseMixin):
                     # Create UrlMap class that is bound to the root url.
                     UrlMap = url_map_maker(self.root_url)
 
-                    url_maps = (UrlMap(name='home',
-                                       url='my-first-app',
-                                       controller='my_first_app.controllers.home',
-                                       ),
-                    ),
-                    url_maps = (UrlMap(name='home_ws',
-                                       url='my-first-ws',
-                                       controller='my_first_app.controllers.HomeConsumer',
-                                       protocol='websocket'
-                                       ),
+                    url_maps = (
+                        UrlMap(name='home',
+                            url='my-first-app',
+                            controller='my_first_app.controllers.home',
+                        ),
+                        UrlMap(name='home_ws',
+                            url='my-first-ws',
+                            controller='my_first_app.controllers.HomeConsumer',
+                            protocol='websocket'
+                        ),
+                        UrlMap(name='bokeh_handler',
+                            url='my-first-app/bokeh-example',
+                            controller='my_first_app.controllers.bokeh_example',
+                            handler='my_first_app.controllers.bokeh_example_handler',
+                            handler_type='bokeh'
+                        ),
                     )
 
                     return url_maps
@@ -100,28 +194,7 @@ class TethysBase(TethysBaseMixin):
                     url_patterns[url_map.protocol][namespace] = []
 
                 # Create django url object
-                if isinstance(url_map.controller, str):
-                    root_controller_path = 'tethysext' if is_extension else 'tethys_apps.tethysapp'
-                    full_controller_path = '.'.join([root_controller_path, url_map.controller])
-                    controller_parts = full_controller_path.split('.')
-                    module_name = '.'.join(controller_parts[:-1])
-                    function_name = controller_parts[-1]
-                    try:
-                        module = __import__(module_name, fromlist=[function_name])
-                    except Exception as e:
-                        error_msg = 'The following error occurred while trying to import the controller function ' \
-                                    '"{0}":\n {1}'.format(url_map.controller, traceback.format_exc(2))
-                        tethys_log.error(error_msg)
-                        raise e
-                    try:
-                        controller_function = getattr(module, function_name)
-                    except AttributeError as e:
-                        error_msg = 'The following error occurred while trying to access the controller function ' \
-                                    '"{0}":\n {1}'.format(url_map.controller, traceback.format_exc(2))
-                        tethys_log.error(error_msg)
-                        raise e
-                else:
-                    controller_function = url_map.controller
+                controller_function = self._resolve_ref_function(url_map.controller, 'controller', is_extension)
                 django_url = url(url_map.url, controller_function, name=url_map.name)
 
                 # Append to namespace list
@@ -129,6 +202,38 @@ class TethysBase(TethysBaseMixin):
             self._url_patterns = url_patterns
 
         return self._url_patterns
+
+    @property
+    def handler_patterns(self):
+        """
+        Generate the url pattern lists for  app and namespace them accordingly.
+        """
+        if self._handler_patterns is None:
+            is_extension = isinstance(self, TethysExtensionBase)
+
+            handler_patterns = {'http': dict(), 'websocket': dict()}
+
+            if hasattr(self, 'url_maps'):
+                url_maps = self.url_maps()
+
+            for url_map in url_maps:
+                if url_map.handler:
+                    namespace = self.namespace
+
+                    if namespace not in handler_patterns['http']:
+                        handler_patterns['http'][namespace] = []
+
+                    if namespace not in handler_patterns['websocket']:
+                        handler_patterns['websocket'][namespace] = []
+
+                    # Create django url routing objects
+                    handler_function = self._resolve_ref_function(url_map.handler, 'handler', is_extension)
+                    if url_map.handler_type == 'bokeh':
+                        self._resolve_bokeh_handler(namespace, url_map, handler_function, handler_patterns)
+
+            self._handler_patterns = handler_patterns
+
+        return self._handler_patterns
 
     def sync_with_tethys_db(self):
         """
@@ -224,6 +329,9 @@ class TethysExtensionBase(TethysBase):
                     db_extension.name = self.name
                     db_extension.description = self.description
                     db_extension.save()
+        except ProgrammingError:
+            tethys_log.warning("Unable to sync extension with database. tethys_apps_tethysextension "
+                               "table does not exist")
         except Exception as e:
             tethys_log.error(e)
 
@@ -557,7 +665,8 @@ class TethysAppBase(TethysBase):
         from tethys_apps.models import TethysApp
 
         perms = self.permissions()
-        app_permissions = dict()
+        # add default access_app permission
+        app_permissions = {f'{self.package}:access_app': f'{self.package} | Can access app'}
         app_groups = dict()
 
         # Name spaced prefix for app permissions
@@ -647,7 +756,8 @@ class TethysAppBase(TethysBase):
         # Create groups that need to be created
         for group in app_groups:
             # Look up the app
-            db_app = TethysApp.objects.get(package=app_groups[group]['app_package'])
+            db_app = TethysApp.objects.get(
+                package=app_groups[group]['app_package'])
 
             # Create group if it doesn't exist
             try:
@@ -673,44 +783,6 @@ class TethysAppBase(TethysBase):
                 for p in app_groups[group]['permissions']:
                     assign_perm(p, g, db_app)
 
-    def job_templates(self):
-        """
-        Override this method to define job templates to easily create and submit jobs in your app.
-
-        Returns:
-            iterable: A list or tuple of ``JobTemplate`` objects.
-
-        **Example:**
-
-        ::
-
-            from tethys_sdk.jobs import CondorJobTemplate
-            from tethys_sdk.compute import list_schedulers
-
-            class MyFirstApp(TethysAppBase):
-
-                def job_templates(cls):
-                    \"""
-                    Example job_templates method.
-                    \"""
-                    my_scheduler = list_schedulers()[0]
-
-                    job_templates = (CondorJobTemplate(name='example',
-                                                       parameters={'executable': '$(APP_WORKSPACE)/example_exe.py',
-                                                                   'condorpy_template_name': 'vanilla_transfer_files',
-                                                                   'attributes': {'transfer_input_files': ('../input_1.in', '../input_2.in'),
-                                                                                  'transfer_output_files': ('example_output1.out', 'example_output2.out'),
-                                                                                 },
-                                                                   'scheduler': my_scheduler,
-                                                                   'remote_input_files': ('$(APP_WORKSPACE)/example_exe.py', '$(APP_WORKSPACE)/input_1.in', '$(USER_WORKSPACE)/input_2.in'),
-                                                                  }
-                                                      ),
-                                    )
-
-                    return job_templates
-        """  # noqa: E501
-        return None
-
     @classmethod
     def get_handoff_manager(cls):
         """
@@ -725,7 +797,7 @@ class TethysAppBase(TethysBase):
         """
         Get the JobManager for the app.
         """
-        from tethys_sdk.jobs import JobManager
+        from tethys_compute.job_manager import JobManager
         app = cls()
         job_manager = JobManager(app)
         return job_manager
@@ -921,7 +993,8 @@ class TethysAppBase(TethysBase):
         spatial_dataset_service_settings = db_app.spatial_dataset_service_settings
 
         try:
-            spatial_dataset_service_setting = spatial_dataset_service_settings.get(name=name)
+            spatial_dataset_service_setting = spatial_dataset_service_settings.get(
+                name=name)
             return spatial_dataset_service_setting.get_value(
                 as_public_endpoint=as_public_endpoint,
                 as_endpoint=as_endpoint,
@@ -1103,8 +1176,7 @@ class TethysAppBase(TethysBase):
                     'PersistentStoreDatabaseSetting named "{0}" does not exist.'.format(db_name),
                     connection_name, cls.name)
             else:
-                raise TethysAppSettingDoesNotExist(
-                                                   'PersistentStoreConnectionSetting ', connection_name, cls.name)
+                raise TethysAppSettingDoesNotExist('PersistentStoreConnectionSetting ', connection_name, cls.name)
 
         ps_service = ps_setting.persistent_store_service
 
@@ -1319,11 +1391,10 @@ class TethysAppBase(TethysBase):
 
                 db_app.save()
 
-            # If the app is in the database, update developer-first attributes
+            # If the app is in the database, update developer priority attributes
             elif len(db_apps) == 1:
                 db_app = db_apps[0]
                 db_app.index = self.index
-                db_app.icon = self.icon
                 db_app.root_url = self.root_url
                 db_app.color = self.color
 
@@ -1339,9 +1410,11 @@ class TethysAppBase(TethysBase):
                 db_app.add_settings(self.persistent_store_settings())
                 db_app.save()
 
+                # In debug mode, update all fields, not just developer priority attributes
                 if hasattr(settings, 'DEBUG') and settings.DEBUG:
                     db_app.name = self.name
                     db_app.description = self.description
+                    db_app.icon = self.icon
                     db_app.tags = self.tags
                     db_app.enable_feedback = self.enable_feedback
                     db_app.feedback_emails = self.feedback_emails
@@ -1350,6 +1423,9 @@ class TethysAppBase(TethysBase):
             # More than one instance of the app in db... (what to do here?)
             elif len(db_apps) >= 2:
                 pass
+        except ProgrammingError:
+            tethys_log.warning("Unable to sync app with database. tethys_apps_tethysapp "
+                               "table does not exist")
         except Exception as e:
             tethys_log.error(e)
 
@@ -1372,17 +1448,17 @@ class TethysAppBase(TethysBase):
         to access a non-existent setting is made.
 
         Args:
-            settings_type (str, required):
+            setting_type (str, required):
                 Name of specific settings class (e.g. CustomTethysAppSetting, PersistentStoreDatabaseSetting etc).
             setting_name (str, required):
                 Name attribute of the setting.
         """
-        tethys_log.warn('Tethys app setting is not assigned.\nTraceback (most recent call last):\n{0} '
-                        'TethysAppSettingNotAssigned: {1} named "{2}" has not been assigned. '
-                        'Please visit the setting page for the app {3} and assign all required settings.'
-                        .format(traceback.format_stack(limit=3)[0], setting_type, setting_name,
-                                cls.name.encode('utf-8'))
-                        )
+        tethys_log.warning('Tethys app setting is not assigned.\nTraceback (most recent call last):\n{0} '
+                           'TethysAppSettingNotAssigned: {1} named "{2}" has not been assigned. '
+                           'Please visit the setting page for the app {3} and assign all required settings.'
+                           .format(traceback.format_stack(limit=3)[0], setting_type, setting_name,
+                                   cls.name.encode('utf-8'))
+                           )
 
     @classmethod
     def pre_delete_user_workspace(cls, user):

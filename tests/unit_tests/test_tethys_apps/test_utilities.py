@@ -1,7 +1,10 @@
 import unittest
 from unittest import mock
 
+from tethys_sdk.testing import TethysTestCase
+
 from tethys_apps import utilities
+from guardian.shortcuts import assign_perm
 
 
 class TethysAppsUtilitiesTests(unittest.TestCase):
@@ -53,6 +56,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
     def test_get_directories_in_tethys_templates_extension_import_error(self, mock_harvester):
         # Mock the extension_modules variable with bad data, to throw an ImportError
         mock_harvester().extension_modules = {'foo_invalid_foo': 'tethysext.foo_invalid_foo'}
+        mock_harvester().app_modules = {'test_app': 'tethysapp.test_app'}
 
         result = utilities.get_directories_in_tethys(('templates',))
         self.assertGreaterEqual(len(result), 1)
@@ -68,6 +72,22 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
 
         self.assertTrue(test_app)
         self.assertFalse(test_ext)
+
+    @mock.patch('tethys_apps.utilities.SingletonHarvester')
+    def test_get_directories_in_tethys_templates_apps_import_error(self, mock_harvester):
+        # Mock the extension_modules variable with bad data, to throw an ImportError
+        mock_harvester().app_modules = {'foo_invalid_foo': 'tethys_app.foo_invalid_foo'}
+
+        result = utilities.get_directories_in_tethys(('templates',))
+        self.assertGreaterEqual(len(result), 0)
+
+        test_app = False
+
+        for r in result:
+            if '/tethysapp/foo_invalid_foo/templates' in r:
+                test_app = True
+
+        self.assertFalse(test_app)
 
     def test_get_directories_in_tethys_foo(self):
         # Get the foo directories for the test_app and test_extension
@@ -177,7 +197,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertEqual(None, result)
         mock_log_warning.assert_called_once_with('Multiple apps found with root url "foo".')
 
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_create_ps_database_setting_app_does_not_exist(self, mock_app, mock_pretty_output):
         from django.core.exceptions import ObjectDoesNotExist
@@ -196,7 +216,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertIn('A Tethys App with the name', po_call_args[0][0][0])
         self.assertIn('does not exist. Aborted.', po_call_args[0][0][0])
 
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_apps.models.PersistentStoreDatabaseSetting')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_create_ps_database_setting_ps_database_setting_exists(self, mock_app, mock_ps_db_setting,
@@ -217,7 +237,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertIn('already exists. Aborted.', po_call_args[0][0][0])
 
     @mock.patch('tethys_apps.utilities.print')
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_apps.models.PersistentStoreDatabaseSetting')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_create_ps_database_setting_ps_database_setting_exceptions(self, mock_app, mock_ps_db_setting,
@@ -243,7 +263,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         rts_call_args = mock_print.call_args_list
         self.assertIn('foo exception', rts_call_args[0][0][0].args[0])
 
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_apps.models.PersistentStoreDatabaseSetting')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_create_ps_database_setting_ps_database_savess(self, mock_app, mock_ps_db_setting, mock_pretty_output):
@@ -265,7 +285,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertIn('PersistentStoreDatabaseSetting named', po_call_args[0][0][0])
         self.assertIn('created successfully!', po_call_args[0][0][0])
 
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_remove_ps_database_setting_app_not_exist(self, mock_app, mock_pretty_output):
         from django.core.exceptions import ObjectDoesNotExist
@@ -284,7 +304,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertIn('A Tethys App with the name', po_call_args[0][0][0])
         self.assertIn('does not exist. Aborted.', po_call_args[0][0][0])
 
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_apps.models.PersistentStoreDatabaseSetting')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_remove_ps_database_setting_psdbs_not_exist(self, mock_app, mock_ps_db_setting, mock_pretty_output):
@@ -306,7 +326,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertIn(' for app ', po_call_args[0][0][0])
         self.assertIn('does not exist. Aborted.', po_call_args[0][0][0])
 
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_apps.models.PersistentStoreDatabaseSetting')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_remove_ps_database_setting_force_delete(self, mock_app, mock_ps_db_setting, mock_pretty_output):
@@ -327,7 +347,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertIn('Successfully removed PersistentStoreDatabaseSetting with name', po_call_args[0][0][0])
 
     @mock.patch('tethys_apps.utilities.input')
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_apps.models.PersistentStoreDatabaseSetting')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_remove_ps_database_setting_proceed_delete(self, mock_app, mock_ps_db_setting, mock_pretty_output,
@@ -350,7 +370,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertIn('Successfully removed PersistentStoreDatabaseSetting with name', po_call_args[0][0][0])
 
     @mock.patch('tethys_apps.utilities.input')
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_apps.models.PersistentStoreDatabaseSetting')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_remove_ps_database_setting_do_not_proceed(self, mock_app, mock_ps_db_setting, mock_pretty_output,
@@ -372,7 +392,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertEqual(1, len(po_call_args))
         self.assertEqual('Aborted. PersistentStoreDatabaseSetting not removed.', po_call_args[0][0][0])
 
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_services.models.SpatialDatasetService')
     def test_link_service_to_app_setting_spatial_dss_does_not_exist(self, mock_service, mock_pretty_output):
         from django.core.exceptions import ObjectDoesNotExist
@@ -392,7 +412,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertIn('with ID/Name', po_call_args[0][0][0])
         self.assertIn('does not exist.', po_call_args[0][0][0])
 
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_services.models.SpatialDatasetService')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_link_service_to_app_setting_spatial_dss_value_error(self, mock_app, mock_service, mock_pretty_output):
@@ -416,7 +436,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertIn('A Tethys App with the name', po_call_args[0][0][0])
         self.assertIn('does not exist. Aborted.', po_call_args[0][0][0])
 
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_services.models.SpatialDatasetService')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_link_service_to_app_setting_spatial_link_key_error(self, mock_app, mock_service, mock_pretty_output):
@@ -438,7 +458,7 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertIn('The setting_type you specified ("foo_invalid") does not exist.', po_call_args[0][0][0])
         self.assertIn('Choose from: "ps_database|ps_connection|ds_spatial"', po_call_args[0][0][0])
 
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
     @mock.patch('tethys_sdk.app_settings.SpatialDatasetServiceSetting')
     @mock.patch('tethys_services.models.SpatialDatasetService')
     @mock.patch('tethys_apps.models.TethysApp')
@@ -466,8 +486,8 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         self.assertEqual(1, len(po_call_args))
         self.assertIn('was successfully linked to', po_call_args[0][0][0])
 
-    @mock.patch('tethys_apps.cli.cli_colors.pretty_output')
-    @mock.patch('tethys_sdk.app_settings.SpatialDatasetServiceSetting')
+    @mock.patch('tethys_cli.cli_colors.pretty_output')
+    @mock.patch('tethys_sdk.app_settings.SpatialDatasetServiceSetting', __name__='SpatialDatasetServiceSetting')
     @mock.patch('tethys_services.models.SpatialDatasetService')
     @mock.patch('tethys_apps.models.TethysApp')
     def test_link_service_to_app_setting_spatial_link_does_not_exist(self, mock_app, mock_service, mock_setting,
@@ -492,5 +512,109 @@ class TethysAppsUtilitiesTests(unittest.TestCase):
         mock_setting.objects.get.assert_called()
         po_call_args = mock_pretty_output().__enter__().write.call_args_list
         self.assertEqual(1, len(po_call_args))
-        self.assertIn('with ID/Name', po_call_args[0][0][0])
+        self.assertIn('A SpatialDatasetServiceSetting with ID/Name', po_call_args[0][0][0])
         self.assertIn('does not exist.', po_call_args[0][0][0])
+
+    @mock.patch('tethys_apps.utilities.os')
+    def test_get_tethys_home_dir__default_env_name__tethys_home_not_defined(self, mock_os):
+        env_tethys_home = None
+        conda_default_env = 'tethys'  # Default Tethys environment name
+        default_tethys_home = '/home/tethys/.tethys'
+
+        mock_os.environ.get.side_effect = [env_tethys_home, conda_default_env]  # [TETHYS_HOME, CONDA_DEFAULT_ENV]
+        mock_os.path.expanduser.return_value = default_tethys_home
+
+        ret = utilities.get_tethys_home_dir()
+
+        mock_os.environ.get.assert_any_call('TETHYS_HOME')
+        mock_os.environ.get.assert_any_call('CONDA_DEFAULT_ENV')
+        mock_os.path.expanduser.assert_called_with('~/.tethys')
+
+        # Returns default tethys home environment
+        self.assertEqual(default_tethys_home, ret)
+
+    @mock.patch('tethys_apps.utilities.os')
+    def test_get_tethys_home_dir__non_default_env_name__tethys_home_not_defined(self, mock_os):
+        env_tethys_home = None
+        conda_default_env = 'foo'  # Non-default Tethys environment name
+        default_tethys_home = '/home/tethys/.tethys'
+
+        mock_os.environ.get.side_effect = [env_tethys_home, conda_default_env]  # [TETHYS_HOME, CONDA_DEFAULT_ENV]
+        mock_os.path.expanduser.return_value = default_tethys_home
+
+        ret = utilities.get_tethys_home_dir()
+
+        mock_os.environ.get.assert_any_call('TETHYS_HOME')
+        mock_os.environ.get.assert_any_call('CONDA_DEFAULT_ENV')
+        mock_os.path.expanduser.assert_called_with('~/.tethys')
+        mock_os.path.join.assert_called_with(default_tethys_home, conda_default_env)
+
+        # Returns joined path of default tethys home path and environment name
+        self.assertEqual(mock_os.path.join(), ret)
+
+    @mock.patch('tethys_apps.utilities.os')
+    def test_get_tethys_home_dir__tethys_home_defined(self, mock_os):
+        env_tethys_home = '/foo/.bar'
+        conda_default_env = 'foo'
+        mock_os.environ.get.side_effect = [env_tethys_home, conda_default_env]  # [TETHYS_HOME, CONDA_DEFAULT_ENV]
+
+        ret = utilities.get_tethys_home_dir()
+
+        mock_os.environ.get.assert_called_once_with('TETHYS_HOME')
+        mock_os.path.expanduser.assert_not_called()
+
+        # Returns path defined by TETHYS_HOME environment variable
+        self.assertEqual(env_tethys_home, ret)
+
+    @mock.patch('tethys_apps.utilities.tethys_log')
+    @mock.patch('tethys_apps.utilities.os')
+    def test_get_tethys_home_dir__exception(self, mock_os, mock_tethys_log):
+        env_tethys_home = None
+        conda_default_env = 'foo'  # Non-default Tethys environment name
+        default_tethys_home = '/home/tethys/.tethys'
+
+        mock_os.environ.get.side_effect = [env_tethys_home, conda_default_env]  # [TETHYS_HOME, CONDA_DEFAULT_ENV]
+        mock_os.path.expanduser.return_value = default_tethys_home
+
+        mock_os.path.join.side_effect = Exception
+
+        ret = utilities.get_tethys_home_dir()
+
+        mock_os.environ.get.assert_any_call('TETHYS_HOME')
+        mock_os.environ.get.assert_any_call('CONDA_DEFAULT_ENV')
+        mock_os.path.expanduser.assert_called_with('~/.tethys')
+        mock_os.path.join.assert_called_with(default_tethys_home, conda_default_env)
+        mock_tethys_log.warning.assert_called()
+
+        # Returns default tethys home environment path
+        self.assertEqual(default_tethys_home, ret)
+
+
+class TestTethysAppsUtilitiesTethysTestCase(TethysTestCase):
+    def set_up(self):
+        self.c = self.get_test_client()
+        self.user = self.create_test_user(username="joe", password="secret", email="joe@some_site.com")
+
+    def tear_down(self):
+        self.user.delete()
+
+    @mock.patch('django.conf.settings')
+    def test_user_can_access_app(self, mock_settings):
+        mock_settings.ENABLE_OPEN_PORTAL = False
+        user = self.user
+        app = utilities.get_active_app(url='/apps/test-app')
+
+        # test no permission
+        result1 = utilities.user_can_access_app(user, app)
+        self.assertFalse(result1)
+
+        # test permission
+        assign_perm(f'{app.package}:access_app', user, app)
+
+        result2 = utilities.user_can_access_app(user, app)
+        self.assertTrue(result2)
+
+        # test open portal mode case
+        mock_settings.ENABLE_OPEN_PORTAL = True
+        result3 = utilities.user_can_access_app(user, app)
+        self.assertTrue(result3)

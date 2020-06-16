@@ -16,9 +16,10 @@ from django.conf import settings
 from django import template
 from django.template.loader import get_template
 from django.template import TemplateSyntaxError
-from django.contrib.staticfiles.templatetags.staticfiles import static
+from django.templatetags.static import static
 from django.core.serializers.json import DjangoJSONEncoder
 
+import plotly  # noqa: F401
 from plotly.offline.offline import get_plotlyjs
 from tethys_apps.harvester import SingletonHarvester
 
@@ -75,6 +76,39 @@ class HighchartsDateEncoder(DjangoJSONEncoder):
         if isinstance(obj, datetime):
             return time.mktime(obj.timetuple()) * 1000
         return super().default(obj)
+
+
+class SetVarNode(template.Node):
+
+    def __init__(self, var_name, var_value):
+        self.var_names = var_name.split('.')
+        self.var_name = self.var_names.pop()
+        self.var_value = var_value
+
+    def render(self, context):
+        try:
+            value = template.Variable(self.var_value).resolve(context)
+        except template.VariableDoesNotExist:
+            value = ''
+
+        for name in self.var_names:
+            context = context[name]
+
+        context[self.var_name] = value
+
+        return ''
+
+
+@register.tag(name='set')
+def set_var(parser, token):
+    """
+    {% set some_var = '123' %}
+    """
+    parts = token.split_contents()
+    if len(parts) < 4:
+        raise template.TemplateSyntaxError("'set' tag must be of the form: {% set <var_name> = <var_value> %}")
+
+    return SetVarNode(parts[1], parts[3])
 
 
 @register.filter(is_safe=True)
@@ -146,7 +180,7 @@ class TethysGizmoIncludeDependency(template.Node):
         """
         This loads the rendered gizmos into context
         """
-        # Add gizmo name to 'gizmos_rendered' context variable (used to load static libraries
+        # Add gizmo name to 'gizmos_rendered' context variable (used to load static  libraries
         if 'gizmos_rendered' not in context:
             context.update({'gizmos_rendered': []})
 

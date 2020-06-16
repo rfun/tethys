@@ -12,18 +12,28 @@ import os.path
 
 
 class CondorWorkflowTest(TethysTestCase):
+    mock_nodes = mock.MagicMock()
+    mock_nodes.name = 'test_job1'
+
+    mock_condor_workflow = mock.MagicMock()
+    mock_condor_workflow._execute.return_value = 'out', 'err'
+
     def set_up(self):
-        path = os.path.dirname(__file__)
-        self.workspace_dir = os.path.join(path, 'workspace')
+        test_models_dir = os.path.dirname(__file__)
+        self.workspace_dir = os.path.join(test_models_dir, 'workspace')
         self.user = User.objects.create_user('tethys_super', 'user@example.com', 'pass')
+
+        files_dir = os.path.join(os.path.dirname(test_models_dir), 'files')
+        self.private_key = os.path.join(files_dir, 'keys', 'testkey')
+        self.private_key_pass = 'password'
 
         self.scheduler = CondorScheduler(
             name='test_scheduler',
             host='localhost',
             username='tethys_super',
             password='pass',
-            private_key_path='test_path',
-            private_key_pass='test_pass'
+            private_key_path=self.private_key,
+            private_key_pass=self.private_key_pass
         )
         self.scheduler.save()
 
@@ -122,6 +132,30 @@ class CondorWorkflowTest(TethysTestCase):
         # Check if mock is called
         mock_pw_update.assert_called()
         mock_ba_update.assert_called()
+
+    @mock.patch('tethys_compute.models.condor.condor_workflow.CondorWorkflow.nodes',
+                new_callable=mock.PropertyMock(return_value=[mock_nodes]))
+    def test_log_files(self, _):
+        expected_ret = {'workflow': 'test_name.dag.dagman.out',
+                        'test_job1': {'log': 'test_job1/logs/*.log',
+                                      'error': 'test_job1/logs/*.err',
+                                      'output': 'test_job1/logs/*.out'}}
+        # Execute
+        ret = self.condorworkflow._log_files()
+
+        self.assertEqual(expected_ret, ret)
+
+    @mock.patch('tethys_compute.models.condor.condor_py_workflow.CondorPyWorkflow.condorpy_workflow',
+                new_callable=mock.PropertyMock(return_value=mock_condor_workflow))
+    def test_get_logs_from_remote(self, mock_condor_workflow):
+        log_files = {'workflow': 'test_name.dag.dagman.out',
+                     'test_job1': {'log': 'test_job1/logs/*.log',
+                                   'error': 'test_job1/logs/*.err',
+                                   'output': 'test_job1/logs/*.out'}}
+        expected_value = {'workflow': 'out', 'test_job1': {'log': 'out', 'error': 'out', 'output': 'out'}}
+        # Execute
+        ret = self.condorworkflow._get_logs_from_remote(log_files)
+        self.assertEqual(expected_value, ret)
 
     @mock.patch('tethys_compute.models.condor.condor_workflow.CondorWorkflow.update_database_fields')
     def test_condor_workflow_presave(self, mock_update):

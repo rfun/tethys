@@ -1,8 +1,8 @@
-*********************
-Summary of References
-*********************
+**********
+References
+**********
 
-**Last Updated:** November 17, 2014
+**Last Updated:** November 2014
 
 This page is provides a list of all the external resources referred too during the documentation for convenience.
 
@@ -24,14 +24,14 @@ This page is provides a list of all the external resources referred too during t
 
 **Django**
 
-* `Writing Views <https://docs.djangoproject.com/en/1.7/topics/http/views/>`_
-* `Django Template Language <https://docs.djangoproject.com/en/1.7/topics/templates/>`_
-* `Django template Variables <https://docs.djangoproject.com/en/1.7/topics/templates/#variables>`_
-* `Django Filter Reference <https://docs.djangoproject.com/en/1.7/ref/templates/builtins/#ref-templates-builtins-filters>`_
-* `Django Tag Reference <https://docs.djangoproject.com/en/1.7/ref/templates/builtins/#ref-templates-builtins-tags>`_
-* `Django Template Inheritance <https://docs.djangoproject.com/en/1.7/topics/templates/#template-inheritance>`_
-* `Django static tag <https://docs.djangoproject.com/en/1.7/ref/contrib/staticfiles/#static>`_
-* `Cross Site Forgery protection <https://docs.djangoproject.com/en/1.7/ref/contrib/csrf/>`_
+* `Writing Views <https://docs.djangoproject.com/en/2.2/topics/http/views/>`_
+* `Django Template Language <https://docs.djangoproject.com/en/2.2/topics/templates/>`_
+* `Django template Variables <https://docs.djangoproject.com/en/2.2/topics/templates/#variables>`_
+* `Django Filter Reference <https://docs.djangoproject.com/en/2.2/ref/templates/builtins/#ref-templates-builtins-filters>`_
+* `Django Tag Reference <https://docs.djangoproject.com/en/2.2/ref/templates/builtins/#ref-templates-builtins-tags>`_
+* `Django Template Inheritance <https://docs.djangoproject.com/en/2.2/topics/templates/#template-inheritance>`_
+* `Django static tag <https://docs.djangoproject.com/en/2.2/ref/contrib/staticfiles/#static>`_
+* `Cross Site Forgery protection <https://docs.djangoproject.com/en/2.2/ref/contrib/csrf/>`_
 
 **CKAN**
 
@@ -82,11 +82,11 @@ This page is provides a list of all the external resources referred too during t
 
 * `ASGI <https://asgi.readthedocs.io/en/latest/>`_
 * `Django Channels <https://channels.readthedocs.io/en/latest/>`_
-* `Deployment Checklist <https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/>`_
-* `Deployment Checklist: STATIC_ROOT <https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/#static-root-and-static-url>`_
-* `Deployment Checklist: SECRET_KEY <https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/#secret-key>`_
-* `Deployment Checklist: ALLOWED_HOSTS <https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/#allowed-hosts>`_
-* `Deployment Checklist: STATIC_ROOT <https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/#static-root-and-static-url>`_
+* `Deployment Checklist <https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/>`_
+* `Deployment Checklist: STATIC_ROOT <https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/#static-root-and-static-url>`_
+* `Deployment Checklist: SECRET_KEY <https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/#secret-key>`_
+* `Deployment Checklist: ALLOWED_HOSTS <https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/#allowed-hosts>`_
+* `Deployment Checklist: STATIC_ROOT <https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/#static-root-and-static-url>`_
 * `How to deploy with ASGI <https://channels.readthedocs.io/en/latest/deploying.html>`_
 *
 
